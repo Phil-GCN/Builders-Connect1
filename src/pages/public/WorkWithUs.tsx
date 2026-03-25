@@ -18,14 +18,14 @@ const WorkWithUs: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
 
   const requestTypes = [
-    { id: 'speaking' as RequestType, label: 'Speaking Engagement', icon: Mic, email: 'speaking@buildersconnect.org' },
-    { id: 'podcast_guest' as RequestType, label: 'Podcast Guest (You on Our Show)', icon: Users, email: 'podcast@buildersconnect.org' },
-    { id: 'podcast_invite' as RequestType, label: 'Podcast Interview (Phil on Your Show)', icon: Mic, email: 'podcast@buildersconnect.org' },
+    { id: 'speaking' as RequestType, label: 'Speaking Engagement', icon: Mic, email: 'bookings@buildersconnect.org' },
+    { id: 'podcast_guest' as RequestType, label: 'Podcast Guest (You on Our Show)', icon: Users, email: 'bookings@buildersconnect.org' },
+    { id: 'podcast_invite' as RequestType, label: 'Podcast Interview (Phil on Your Show)', icon: Mic, email: 'bookings@buildersconnect.org' },
     { id: 'press' as RequestType, label: 'Press & Media', icon: Newspaper, email: 'press@buildersconnect.org' },
     { id: 'partnership' as RequestType, label: 'Partnership Opportunity', icon: Handshake, email: 'partnerships@buildersconnect.org' },
     { id: 'general' as RequestType, label: 'General Inquiry', icon: Mail, email: 'hello@buildersconnect.org' },
   ];
-
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
