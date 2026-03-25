@@ -2,13 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { Navbar } from '../../components/Navbar';
 import { Footer } from '../../components/Footer';
 import { Button } from '../../components/Button';
-import { Mic, Youtube, Music, Play, ChevronLeft, ChevronRight, Star, TrendingUp, Clock } from 'lucide-react';
+import { Mic, Youtube, Music, Play, ChevronLeft, ChevronRight, Star, TrendingUp, Clock, Volume2 } from 'lucide-react';
 import { fetchPodcastEpisodes, PODCAST_INFO, PodcastEpisode } from '../../lib/podcast';
+import { PiPVideoPlayer, InlineAudioPlayer } from '../../components/VideoPlayer';
 
 const Podcast: React.FC = () => {
   const [episodes, setEpisodes] = useState<PodcastEpisode[]>([]);
   const [loading, setLoading] = useState(true);
   const [latestStartIndex, setLatestStartIndex] = useState(0);
+  const [pipPlayer, setPipPlayer] = useState<{ episode: PodcastEpisode; type: 'video' | 'audio' } | null>(null);
+  const [audioPlayer, setAudioPlayer] = useState<PodcastEpisode | null>(null);
   const latestPerView = 3;
 
   useEffect(() => {
@@ -30,9 +33,26 @@ const Podcast: React.FC = () => {
     }
   };
 
+  const playAudio = (episode: PodcastEpisode) => {
+    setPipPlayer(null);
+    setAudioPlayer(episode);
+  };
+
+  const playVideo = (episode: PodcastEpisode) => {
+    setAudioPlayer(null);
+    setPipPlayer({ episode, type: 'video' });
+  };
+
   const featuredEpisode = episodes[0];
-  const latestEpisodes = episodes.slice(1, 13); // Next 12 episodes
-  const topEpisodes = episodes.slice(0, 6); // For "Top Episodes" section
+  const latestEpisodes = episodes.slice(1, 13);
+  const topEpisodes = episodes.slice(0, 6);
+
+  // Extract Spotify embed URL for featured episode
+  const getFeaturedSpotifyEmbed = () => {
+    if (!featuredEpisode?.audioUrl) return null;
+    const episodeId = featuredEpisode.audioUrl.match(/episode\/([a-zA-Z0-9]+)/)?.[1];
+    return episodeId ? `https://open.spotify.com/embed/episode/${episodeId}/video?utm_source=generator` : null;
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -54,7 +74,7 @@ const Podcast: React.FC = () => {
               Strategic conversations with ambitious builders designing lives beyond default settings
             </p>
             
-            {/* Platform Links - Compact */}
+            {/* Platform Links */}
             <div className="flex flex-wrap gap-3 justify-center">
               <a href={PODCAST_INFO.spotify} target="_blank" rel="noopener noreferrer">
                 <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors">
@@ -89,7 +109,7 @@ const Podcast: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* Featured Video Episode */}
+              {/* Featured Video Episode - Embedded Spotify Player */}
               {featuredEpisode && (
                 <section className="mb-20">
                   <div className="flex items-center justify-between mb-6">
@@ -100,10 +120,21 @@ const Podcast: React.FC = () => {
                     </div>
                   </div>
                   <div className="grid lg:grid-cols-3 gap-8 bg-gray-50 rounded-2xl p-8">
-                    {/* Video Embed */}
+                    {/* Embedded Video Player */}
                     <div className="lg:col-span-2">
                       <div className="aspect-video bg-black rounded-xl overflow-hidden shadow-2xl">
-                        {featuredEpisode.coverImage ? (
+                        {getFeaturedSpotifyEmbed() ? (
+                          <iframe
+                            style={{ borderRadius: '12px' }}
+                            src={getFeaturedSpotifyEmbed()!}
+                            width="100%"
+                            height="100%"
+                            frameBorder="0"
+                            allowFullScreen
+                            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                            loading="lazy"
+                          />
+                        ) : featuredEpisode.coverImage ? (
                           <img 
                             src={featuredEpisode.coverImage} 
                             alt={featuredEpisode.title}
@@ -116,6 +147,7 @@ const Podcast: React.FC = () => {
                         )}
                       </div>
                     </div>
+                    
                     {/* Episode Details */}
                     <div className="flex flex-col justify-center">
                       <h3 className="text-2xl font-bold text-gray-900 mb-4">
@@ -126,17 +158,19 @@ const Podcast: React.FC = () => {
                       </p>
                       <div className="flex flex-wrap gap-3">
                         {featuredEpisode.audioUrl && (
-                          <a href={featuredEpisode.audioUrl} target="_blank" rel="noopener noreferrer">
-                            <Button size="sm" className="flex items-center gap-2">
-                              <Play className="w-4 h-4" />
-                              Listen Now
-                            </Button>
-                          </a>
+                          <Button 
+                            size="sm" 
+                            onClick={() => playAudio(featuredEpisode)}
+                            className="flex items-center gap-2"
+                          >
+                            <Volume2 className="w-4 h-4" />
+                            Listen (Audio Only)
+                          </Button>
                         )}
                         <a href={PODCAST_INFO.youtubePlaylist} target="_blank" rel="noopener noreferrer">
                           <Button variant="outline" size="sm" className="flex items-center gap-2">
                             <Youtube className="w-4 h-4" />
-                            Watch on YouTube
+                            YouTube Playlist
                           </Button>
                         </a>
                       </div>
@@ -170,8 +204,11 @@ const Podcast: React.FC = () => {
                   <div className="grid md:grid-cols-3 gap-6">
                     {latestEpisodes.slice(latestStartIndex, latestStartIndex + latestPerView).map((episode) => (
                       <div key={episode.id} className="group cursor-pointer">
-                        {/* Compact Cover */}
-                        <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden mb-3 relative">
+                        {/* Thumbnail - Click to play video in PiP */}
+                        <div 
+                          className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden mb-3 relative"
+                          onClick={() => playVideo(episode)}
+                        >
                           {episode.coverImage ? (
                             <img 
                               src={episode.coverImage} 
@@ -183,34 +220,42 @@ const Podcast: React.FC = () => {
                               <Mic className="w-12 h-12 text-gray-400" />
                             </div>
                           )}
-                          {episode.audioUrl && (
-                            <a 
-                              href={episode.audioUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                            >
-                              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                                <Play className="w-6 h-6 text-primary ml-1" />
-                              </div>
-                            </a>
-                          )}
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                              <Play className="w-6 h-6 text-primary ml-1" />
+                            </div>
+                          </div>
                         </div>
-                        {/* Compact Info */}
+                        
+                        {/* Info */}
                         <div className="text-xs text-gray-500 mb-1">
                           {new Date(episode.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                           {episode.duration && ` • ${episode.duration}`}
                         </div>
-                        <h3 className="font-semibold text-gray-900 line-clamp-2 group-hover:text-primary transition-colors">
+                        <h3 className="font-semibold text-gray-900 line-clamp-2 mb-2 group-hover:text-primary transition-colors">
                           {episode.title}
                         </h3>
+                        
+                        {/* Listen button - Audio only */}
+                        {episode.audioUrl && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              playAudio(episode);
+                            }}
+                            className="text-xs text-primary font-medium flex items-center gap-1 hover:gap-2 transition-all"
+                          >
+                            <Volume2 className="w-3 h-3" />
+                            Listen
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
                 </section>
               )}
 
-              {/* Top Episodes */}
+              {/* Top Episodes - Audio only */}
               {topEpisodes.length > 0 && (
                 <section className="mb-20">
                   <div className="flex items-center gap-3 mb-6">
@@ -221,13 +266,16 @@ const Podcast: React.FC = () => {
                     {topEpisodes.map((episode, idx) => (
                       <div key={episode.id} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-shadow group">
                         <div className="flex gap-4">
-                          {/* Small Thumbnail */}
-                          <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex-shrink-0 overflow-hidden relative">
+                          {/* Small Thumbnail - Click for video PiP */}
+                          <div 
+                            className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex-shrink-0 overflow-hidden relative cursor-pointer"
+                            onClick={() => playVideo(episode)}
+                          >
                             {episode.coverImage ? (
                               <img 
                                 src={episode.coverImage} 
                                 alt={episode.title}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
@@ -235,6 +283,7 @@ const Podcast: React.FC = () => {
                               </div>
                             )}
                           </div>
+                          
                           {/* Info */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
@@ -247,15 +296,13 @@ const Podcast: React.FC = () => {
                               {episode.title}
                             </h4>
                             {episode.audioUrl && (
-                              <a 
-                                href={episode.audioUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                              <button
+                                onClick={() => playAudio(episode)}
                                 className="text-xs text-primary font-medium flex items-center gap-1 hover:gap-2 transition-all"
                               >
-                                <Play className="w-3 h-3" />
+                                <Volume2 className="w-3 h-3" />
                                 Listen
-                              </a>
+                              </button>
                             )}
                           </div>
                         </div>
@@ -265,7 +312,7 @@ const Podcast: React.FC = () => {
                 </section>
               )}
 
-              {/* Trending/Popular */}
+              {/* Trending - PiP video on click */}
               <section className="mb-20">
                 <div className="flex items-center gap-3 mb-6">
                   <TrendingUp className="w-6 h-6 text-secondary" />
@@ -273,7 +320,11 @@ const Podcast: React.FC = () => {
                 </div>
                 <div className="grid md:grid-cols-4 gap-4">
                   {episodes.slice(3, 7).map((episode) => (
-                    <div key={episode.id} className="group cursor-pointer">
+                    <div 
+                      key={episode.id} 
+                      className="group cursor-pointer"
+                      onClick={() => playVideo(episode)}
+                    >
                       <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg overflow-hidden mb-2 relative">
                         {episode.coverImage ? (
                           <img 
@@ -286,18 +337,11 @@ const Podcast: React.FC = () => {
                             <Mic className="w-10 h-10 text-gray-400" />
                           </div>
                         )}
-                        {episode.audioUrl && (
-                          <a 
-                            href={episode.audioUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                          >
-                            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                              <Play className="w-5 h-5 text-primary ml-0.5" />
-                            </div>
-                          </a>
-                        )}
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                            <Play className="w-5 h-5 text-primary ml-0.5" />
+                          </div>
+                        </div>
                       </div>
                       <h4 className="font-medium text-sm text-gray-900 line-clamp-2 group-hover:text-primary transition-colors">
                         {episode.title}
@@ -322,6 +366,27 @@ const Podcast: React.FC = () => {
           </section>
         </div>
       </div>
+
+      {/* Picture-in-Picture Video Player */}
+      {pipPlayer && (
+        <PiPVideoPlayer
+          videoUrl={pipPlayer.episode.audioUrl}
+          audioUrl={pipPlayer.episode.audioUrl}
+          title={pipPlayer.episode.title}
+          coverImage={pipPlayer.episode.coverImage}
+          type={pipPlayer.type}
+          onClose={() => setPipPlayer(null)}
+        />
+      )}
+
+      {/* Inline Audio Player */}
+      {audioPlayer && (
+        <InlineAudioPlayer
+          audioUrl={audioPlayer.audioUrl}
+          title={audioPlayer.title}
+          coverImage={audioPlayer.coverImage}
+        />
+      )}
 
       <Footer />
     </div>
