@@ -4,9 +4,11 @@ export interface PodcastEpisode {
   description: string;
   audioUrl: string;
   youtubeUrl?: string;
+  spotifyUrl?: string;
   publishedAt: string;
   duration?: string;
   coverImage?: string;
+  guid?: string;
 }
 
 export const PODCAST_INFO = {
@@ -19,10 +21,9 @@ export const PODCAST_INFO = {
   appleEmbed: 'https://embed.podcasts.apple.com/us/podcast/future-foundations-building-beyond-borders/id1874863146',
 };
 
-// Parse RSS feed (client-side using CORS proxy)
+// Parse RSS feed
 export const fetchPodcastEpisodes = async (): Promise<PodcastEpisode[]> => {
   try {
-    // Using RSS to JSON API (free, no auth needed)
     const response = await fetch(
       `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(PODCAST_INFO.rss)}`
     );
@@ -32,17 +33,34 @@ export const fetchPodcastEpisodes = async (): Promise<PodcastEpisode[]> => {
       throw new Error('Failed to fetch podcast feed');
     }
 
-    return data.items.slice(0, 12).map((item: any, index: number) => ({
-      id: item.guid || `episode-${index}`,
-      title: item.title,
-      description: item.description?.replace(/<[^>]*>/g, '') || '', // Strip HTML
-      audioUrl: item.enclosure?.link || '',
-      publishedAt: item.pubDate,
-      duration: item.itunes?.duration || '',
-      coverImage: item.thumbnail || data.feed?.image || '',
-    }));
+    return data.items.slice(0, 20).map((item: any, index: number) => {
+      // Extract Spotify episode ID from GUID
+      const guid = item.guid || '';
+      const spotifyMatch = guid.match(/episode\/([a-zA-Z0-9]{22})/);
+      const spotifyEpisodeId = spotifyMatch ? spotifyMatch[1] : null;
+      
+      return {
+        id: item.guid || `episode-${index}`,
+        title: item.title,
+        description: item.description?.replace(/<[^>]*>/g, '') || '',
+        audioUrl: item.enclosure?.link || '',
+        spotifyUrl: spotifyEpisodeId ? `https://open.spotify.com/episode/${spotifyEpisodeId}` : null,
+        publishedAt: item.pubDate,
+        duration: item.itunes?.duration || '',
+        coverImage: item.thumbnail || data.feed?.image || '',
+        guid: item.guid,
+      };
+    });
   } catch (error) {
     console.error('Error fetching podcast:', error);
     return [];
   }
+};
+
+// Helper to get Spotify episode embed URL
+export const getSpotifyEpisodeEmbed = (episode: PodcastEpisode): string | null => {
+  if (!episode.guid) return null;
+  const match = episode.guid.match(/episode\/([a-zA-Z0-9]{22})/);
+  if (!match) return null;
+  return `https://open.spotify.com/embed/episode/${match[1]}/video?utm_source=generator`;
 };
