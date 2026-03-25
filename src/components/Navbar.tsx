@@ -30,7 +30,6 @@ export const Navbar: React.FC = () => {
             <Link to="/shop" className="text-gray-700 hover:text-primary transition-colors">Shop</Link>
             <Link to="/community" className="text-gray-700 hover:text-primary transition-colors">Community</Link>
             <Link to="/resources" className="text-gray-700 hover:text-primary transition-colors">Resources</Link>
-            <Link to="/work-with-us" className="text-gray-700 hover:text-primary transition-colors">Work With Us</Link>
             
             {user ? (
               <div className="flex items-center space-x-4">
