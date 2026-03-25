@@ -15,7 +15,8 @@ export const PODCAST_INFO = {
   youtubePlaylist: 'https://youtube.com/playlist?list=PL9fKbOngNj6Ac9wdzaJjxbDua3ZVe4270&si=wTB9x4RHi1hQremv',
   spotify: 'https://open.spotify.com/show/6yUjD35JA5VRfHzHw2gCX9?si=37ba2ca4a859484e',
   spotifyEmbed: 'https://open.spotify.com/embed/show/6yUjD35JA5VRfHzHw2gCX9/video',
-  applePodcast: 'https://podcasts.apple.com/podcast/id1234567890', // Update with actual URL
+  applePodcast: 'https://podcasts.apple.com/us/podcast/future-foundations-building-beyond-borders/id1874863146',
+  appleEmbed: 'https://embed.podcasts.apple.com/us/podcast/future-foundations-building-beyond-borders/id1874863146',
 };
 
 // Parse RSS feed (client-side using CORS proxy)
