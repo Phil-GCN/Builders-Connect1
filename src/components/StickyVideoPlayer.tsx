@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize } from 'lucide-react';
+import { Play } from 'lucide-react';
 
 interface StickyVideoPlayerProps {
   embedUrl: string;
@@ -22,7 +22,7 @@ export const StickyVideoPlayer: React.FC<StickyVideoPlayerProps> = ({
       if (!containerRef.current) return;
       
       const rect = containerRef.current.getBoundingClientRect();
-      const isScrolledPast = rect.top < -rect.height / 2;
+      const isScrolledPast = rect.bottom < 0;
       const isScrolledBack = rect.top > -100;
       
       if (isScrolledPast && !isSticky) {
@@ -45,7 +45,7 @@ export const StickyVideoPlayer: React.FC<StickyVideoPlayerProps> = ({
     <>
       {/* Original Position */}
       <div ref={containerRef} className="aspect-video bg-black rounded-xl overflow-hidden shadow-2xl relative">
-        {showCover && coverImage ? (
+        {showCover && coverImage && !isPlaying ? (
           <>
             <img 
               src={coverImage} 
@@ -56,7 +56,7 @@ export const StickyVideoPlayer: React.FC<StickyVideoPlayerProps> = ({
               onClick={handlePlay}
               className="absolute inset-0 bg-black/50 hover:bg-black/40 transition-colors flex items-center justify-center group"
             >
-              <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+              <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xl">
                 <Play className="w-10 h-10 text-primary ml-2" />
               </div>
             </button>
@@ -73,7 +73,7 @@ export const StickyVideoPlayer: React.FC<StickyVideoPlayerProps> = ({
 
       {/* Sticky Floating Player */}
       {isSticky && isPlaying && (
-        <div className="fixed bottom-20 right-6 w-96 z-50 shadow-2xl rounded-xl overflow-hidden bg-black">
+        <div className="fixed bottom-20 right-6 w-96 z-50 shadow-2xl rounded-xl overflow-hidden bg-black animate-in slide-in-from-bottom-4">
           <iframe
             src={embedUrl}
             className="w-full aspect-video"
