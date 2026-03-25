@@ -3,8 +3,10 @@ import { Navbar } from '../../components/Navbar';
 import { Footer } from '../../components/Footer';
 import { Button } from '../../components/Button';
 import { Mic, Youtube, Music, Play, ChevronLeft, ChevronRight, Star, TrendingUp, Clock, Volume2 } from 'lucide-react';
-import { fetchPodcastEpisodes, PODCAST_INFO, PodcastEpisode } from '../../lib/podcast';
+import { fetchPodcastEpisodes, PODCAST_INFO, PodcastEpisode, getSpotifyEpisodeEmbed } from '../../lib/podcast';
 import { PiPVideoPlayer, InlineAudioPlayer } from '../../components/VideoPlayer';
+import { StickyVideoPlayer } from '../../components/StickyVideoPlayer';
+import { GuestApplicationForm } from '../../components/GuestApplicationForm';
 
 const Podcast: React.FC = () => {
   const [episodes, setEpisodes] = useState<PodcastEpisode[]>([]);
@@ -12,6 +14,7 @@ const Podcast: React.FC = () => {
   const [latestStartIndex, setLatestStartIndex] = useState(0);
   const [pipPlayer, setPipPlayer] = useState<{ episode: PodcastEpisode; type: 'video' | 'audio' } | null>(null);
   const [audioPlayer, setAudioPlayer] = useState<PodcastEpisode | null>(null);
+  const [showGuestForm, setShowGuestForm] = useState(false);
   const latestPerView = 3;
 
   useEffect(() => {
@@ -40,19 +43,15 @@ const Podcast: React.FC = () => {
 
   const playVideo = (episode: PodcastEpisode) => {
     setAudioPlayer(null);
-    setPipPlayer({ episode, type: 'video' });
+    const embedUrl = getSpotifyEpisodeEmbed(episode);
+    if (embedUrl) {
+      setPipPlayer({ episode, type: 'video' });
+    }
   };
 
   const featuredEpisode = episodes[0];
   const latestEpisodes = episodes.slice(1, 13);
   const topEpisodes = episodes.slice(0, 6);
-
-  // Extract Spotify embed URL for featured episode
-  const getFeaturedSpotifyEmbed = () => {
-    if (!featuredEpisode?.audioUrl) return null;
-    const episodeId = featuredEpisode.audioUrl.match(/episode\/([a-zA-Z0-9]+)/)?.[1];
-    return episodeId ? `https://open.spotify.com/embed/episode/${episodeId}/video?utm_source=generator` : null;
-  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -109,8 +108,8 @@ const Podcast: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* Featured Video Episode - Embedded Spotify Player */}
-              {featuredEpisode && (
+              {/* Featured Video Episode - Sticky Player */}
+              {featuredEpisode && getSpotifyEpisodeEmbed(featuredEpisode) && (
                 <section className="mb-20">
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold text-gray-900">Latest Episode</h2>
@@ -120,32 +119,13 @@ const Podcast: React.FC = () => {
                     </div>
                   </div>
                   <div className="grid lg:grid-cols-3 gap-8 bg-gray-50 rounded-2xl p-8">
-                    {/* Embedded Video Player */}
+                    {/* Sticky Embedded Video Player */}
                     <div className="lg:col-span-2">
-                      <div className="aspect-video bg-black rounded-xl overflow-hidden shadow-2xl">
-                        {getFeaturedSpotifyEmbed() ? (
-                          <iframe
-                            style={{ borderRadius: '12px' }}
-                            src={getFeaturedSpotifyEmbed()!}
-                            width="100%"
-                            height="100%"
-                            frameBorder="0"
-                            allowFullScreen
-                            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                            loading="lazy"
-                          />
-                        ) : featuredEpisode.coverImage ? (
-                          <img 
-                            src={featuredEpisode.coverImage} 
-                            alt={featuredEpisode.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Play className="w-20 h-20 text-white/50" />
-                          </div>
-                        )}
-                      </div>
+                      <StickyVideoPlayer
+                        embedUrl={getSpotifyEpisodeEmbed(featuredEpisode)!}
+                        title={featuredEpisode.title}
+                        coverImage={featuredEpisode.coverImage}
+                      />
                     </div>
                     
                     {/* Episode Details */}
@@ -255,7 +235,7 @@ const Podcast: React.FC = () => {
                 </section>
               )}
 
-              {/* Top Episodes - Audio only */}
+              {/* Top Episodes */}
               {topEpisodes.length > 0 && (
                 <section className="mb-20">
                   <div className="flex items-center gap-3 mb-6">
@@ -266,7 +246,7 @@ const Podcast: React.FC = () => {
                     {topEpisodes.map((episode, idx) => (
                       <div key={episode.id} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-shadow group">
                         <div className="flex gap-4">
-                          {/* Small Thumbnail - Click for video PiP */}
+                          {/* Small Thumbnail */}
                           <div 
                             className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex-shrink-0 overflow-hidden relative cursor-pointer"
                             onClick={() => playVideo(episode)}
@@ -312,7 +292,7 @@ const Podcast: React.FC = () => {
                 </section>
               )}
 
-              {/* Trending - PiP video on click */}
+              {/* Trending */}
               <section className="mb-20">
                 <div className="flex items-center gap-3 mb-6">
                   <TrendingUp className="w-6 h-6 text-secondary" />
@@ -353,24 +333,24 @@ const Podcast: React.FC = () => {
             </>
           )}
 
-          {/* Guest CTA */}
+          {/* Guest CTA - Opens Popup Form */}
           <section className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-12 text-center">
             <Mic className="w-12 h-12 text-primary mx-auto mb-4" />
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Want to Share Your Story?</h2>
             <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
               We're looking for ambitious builders with compelling insights to share with our community
             </p>
-            <a href="mailto:bookings@buildersconnect.org">
-              <Button size="lg">Submit Guest Application</Button>
-            </a>
+            <Button size="lg" onClick={() => setShowGuestForm(true)}>
+              Submit Guest Application
+            </Button>
           </section>
         </div>
       </div>
 
       {/* Picture-in-Picture Video Player */}
-      {pipPlayer && (
+      {pipPlayer && getSpotifyEpisodeEmbed(pipPlayer.episode) && (
         <PiPVideoPlayer
-          videoUrl={pipPlayer.episode.audioUrl}
+          videoUrl={getSpotifyEpisodeEmbed(pipPlayer.episode)!}
           audioUrl={pipPlayer.episode.audioUrl}
           title={pipPlayer.episode.title}
           coverImage={pipPlayer.episode.coverImage}
@@ -386,6 +366,11 @@ const Podcast: React.FC = () => {
           title={audioPlayer.title}
           coverImage={audioPlayer.coverImage}
         />
+      )}
+
+      {/* Guest Application Form Popup */}
+      {showGuestForm && (
+        <GuestApplicationForm onClose={() => setShowGuestForm(false)} />
       )}
 
       <Footer />
