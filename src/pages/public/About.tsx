@@ -1,12 +1,28 @@
 import React, { useState } from 'react';
 import { Navbar } from '../../components/Navbar';
 import { Footer } from '../../components/Footer';
-import { Mic, BookOpen, TrendingUp, Building2, CheckCircle, Users, Target, Compass } from 'lucide-react';
+import { Mic, BookOpen, TrendingUp, Building2, CheckCircle, Users, Target, Compass, X, Send } from 'lucide-react';
+import { Button } from '../../components/Button';
+import { supabase } from '../../lib/supabase';
 
 type TabType = 'speaker' | 'thought-leader' | 'author' | 'investor';
+type FormType = 'speaking' | 'podcast' | null;
 
 const About: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('speaker');
+  const [showForm, setShowForm] = useState<FormType>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    company: '',
+    event_name: '',
+    event_date: '',
+    event_location: '',
+    audience_size: '',
+    message: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const tabs = [
     { id: 'speaker' as TabType, label: 'Keynote Speaker', icon: Mic },
@@ -15,11 +31,57 @@ const About: React.FC = () => {
     { id: 'investor' as TabType, label: 'Real Estate Investor', icon: Building2 },
   ];
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    try {
+      const { error } = await supabase
+        .from('contact_requests')
+        .insert({
+          request_type: showForm === 'speaking' ? 'speaking' : 'podcast_guest',
+          name: formData.name,
+          email: formData.email,
+          company: formData.company || null,
+          message: formData.message,
+          additional_data: {
+            event_name: formData.event_name,
+            event_date: formData.event_date,
+            event_location: formData.event_location,
+            audience_size: formData.audience_size,
+          },
+        });
+
+      if (error) throw error;
+
+      setSubmitted(true);
+      setTimeout(() => {
+        setShowForm(null);
+        setSubmitted(false);
+        setFormData({
+          name: '',
+          email: '',
+          company: '',
+          event_name: '',
+          event_date: '',
+          event_location: '',
+          audience_size: '',
+          message: '',
+        });
+      }, 2000);
+    } catch (err) {
+      console.error('Error submitting form:', err);
+      alert('Failed to submit. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
       
-      {/* Hero Section - About BuildersConnect */}
+      {/* Hero Section */}
       <div className="pt-32 pb-20 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
@@ -150,7 +212,7 @@ const About: React.FC = () => {
             </p>
           </div>
 
-          {/* Tab Navigation - Centered */}
+          {/* Tab Navigation */}
           <div className="border-b border-gray-300 mb-12">
             <div className="flex overflow-x-auto justify-center">
               {tabs.map((tab) => {
@@ -200,9 +262,12 @@ const About: React.FC = () => {
                       ))}
                     </div>
 
-                    <a href="/work-with-us" className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-semibold">
+                    <button 
+                      onClick={() => setShowForm('speaking')}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-semibold"
+                    >
                       Book Phil to Speak →
-                    </a>
+                    </button>
                   </div>
 
                   <div className="aspect-square bg-gray-200 rounded-2xl overflow-hidden">
@@ -338,6 +403,152 @@ const About: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Speaking Request Form Popup */}
+      {showForm === 'speaking' && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowForm(null)}>
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                  <Mic className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Speaking Engagement Request</h2>
+                  <p className="text-sm text-gray-600">Book Phil for your event</p>
+                </div>
+              </div>
+              <button onClick={() => setShowForm(null)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-6 py-6">
+              {!submitted ? (
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <div className="grid md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Your Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                        placeholder="John Doe"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
+                      <input
+                        type="email"
+                        required
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                        placeholder="you@example.com"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Company/Organization</label>
+                    <input
+                      type="text"
+                      value={formData.company}
+                      onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                      placeholder="Your company"
+                    />
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Event Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.event_name}
+                        onChange={(e) => setFormData({ ...formData, event_name: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                        placeholder="Annual Conference 2025"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Event Date</label>
+                      <input
+                        type="date"
+                        value={formData.event_date}
+                        onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Event Location</label>
+                      <input
+                        type="text"
+                        value={formData.event_location}
+                        onChange={(e) => setFormData({ ...formData, event_location: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                        placeholder="City, Country"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Expected Attendance</label>
+                      <input
+                        type="text"
+                        value={formData.audience_size}
+                        onChange={(e) => setFormData({ ...formData, audience_size: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                        placeholder="e.g., 500 attendees"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Message *</label>
+                    <textarea
+                      required
+                      rows={6}
+                      value={formData.message}
+                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none resize-none"
+                      placeholder="Tell us about your event and speaking requirements..."
+                    />
+                  </div>
+
+                  <div className="flex gap-4 pt-4">
+                    <Button type="submit" disabled={submitting} className="flex-1 flex items-center justify-center gap-2" size="lg">
+                      {submitting ? 'Sending...' : (
+                        <>
+                          <Send className="w-5 h-5" />
+                          Submit Request
+                        </>
+                      )}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setShowForm(null)} size="lg">
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Send className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Request Submitted!</h3>
+                  <p className="text-gray-600">
+                    Thank you for your interest. We will review your request and get back to you soon.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>
