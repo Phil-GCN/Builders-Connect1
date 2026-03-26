@@ -13,7 +13,7 @@ interface RequestTypeConfig {
   icon: any;
   email: string;
   description: string;
-  fields: string[]; // Which additional fields to show
+  fields: string[];
 }
 
 const WorkWithUs: React.FC = () => {
@@ -23,19 +23,15 @@ const WorkWithUs: React.FC = () => {
     email: '',
     company: '',
     message: '',
-    // Podcast Guest specific
     podcast_name: '',
     audience_size: '',
     topic: '',
-    // Speaking specific
     event_name: '',
     event_date: '',
     event_location: '',
     audience_size_event: '',
-    // Press specific
     publication: '',
     deadline: '',
-    // Partnership specific
     partnership_type: '',
   });
   const [submitting, setSubmitting] = useState(false);
@@ -87,7 +83,7 @@ const WorkWithUs: React.FC = () => {
       label: 'General Inquiry',
       icon: Mail,
       email: 'hello@buildersconnect.org',
-      description: 'Questions, feedback, or anything else you'd like to discuss',
+      description: 'Questions, feedback, or anything else you would like to discuss',
       fields: []
     },
   ];
@@ -97,7 +93,6 @@ const WorkWithUs: React.FC = () => {
     setSubmitting(true);
 
     try {
-      // Build additional_data based on selected type
       const selectedConfig = requestTypes.find(t => t.id === selectedType)!;
       const additional_data: any = {};
       
@@ -470,7 +465,7 @@ const WorkWithUs: React.FC = () => {
               </div>
               <h2 className="text-3xl font-bold text-gray-900 mb-4">Request Submitted!</h2>
               <p className="text-lg text-gray-600 mb-8">
-                Thank you for reaching out. We'll review your request and get back to you within 2-3 business days.
+                Thank you for reaching out. We will review your request and get back to you within 2-3 business days.
               </p>
               <Button onClick={resetForm}>
                 Submit Another Request
