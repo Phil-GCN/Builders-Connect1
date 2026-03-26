@@ -473,6 +473,54 @@ const WorkWithUs: React.FC = () => {
             </div>
           )}
         </div>
+        {/* Donate Section */}
+          <div className="mt-20 bg-gradient-to-br from-accent/10 via-primary/10 to-secondary/10 rounded-2xl p-12">
+            <div className="max-w-3xl mx-auto text-center">
+              <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </div>
+              
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">
+                Support Our Mission
+              </h2>
+              
+              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+                Help us empower ambitious builders worldwide to design lives beyond default settings. Your contribution funds free resources, community programs, and accessible content that transforms lives.
+              </p>
+
+              <div className="grid md:grid-cols-3 gap-6 mb-10">
+                <div className="bg-white rounded-xl p-6 shadow-md">
+                  <div className="text-3xl font-bold text-primary mb-2">10K+</div>
+                  <p className="text-sm text-gray-600">Builders impacted</p>
+                </div>
+                <div className="bg-white rounded-xl p-6 shadow-md">
+                  <div className="text-3xl font-bold text-secondary mb-2">100%</div>
+                  <p className="text-sm text-gray-600">Free resources</p>
+                </div>
+                <div className="bg-white rounded-xl p-6 shadow-md">
+                  <div className="text-3xl font-bold text-accent mb-2">50+</div>
+                  <p className="text-sm text-gray-600">Episodes produced</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="https://donate.stripe.com/test_00000000000" target="_blank" rel="noopener noreferrer">
+                  <Button size="lg" className="shadow-lg hover:shadow-xl transition-shadow">
+                    Make a Donation
+                  </Button>
+                </a>
+                <Button variant="outline" size="lg" onClick={() => { /* TODO: Show more info */ }}>
+                  Learn More About Our Impact
+                </Button>
+              </div>
+
+              <p className="text-xs text-gray-500 mt-6">
+                BuildersConnect is committed to transparency. All donations support content creation, community programs, and platform maintenance.
+              </p>
+            </div>
+          </div>
       </div>
 
       <Footer />
