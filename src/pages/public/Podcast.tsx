@@ -102,7 +102,7 @@ const Podcast: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* Featured Episode - Spotify Video Embed */}
+              {/* Featured Episode */}
               {featuredEpisode && (
                 <section className="mb-20">
                   <div className="flex items-center justify-between mb-6">
@@ -152,7 +152,7 @@ const Podcast: React.FC = () => {
                 </section>
               )}
 
-              {/* Latest Episodes - YouTube Links */}
+              {/* Latest Episodes */}
               {latestEpisodes.length > 0 && (
                 <section className="mb-20">
                   <div className="flex items-center justify-between mb-6">
@@ -383,4 +383,4 @@ const Podcast: React.FC = () => {
   );
 };
 
-export default
+export default Podcast;
