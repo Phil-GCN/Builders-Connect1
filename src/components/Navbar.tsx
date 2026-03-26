@@ -24,7 +24,7 @@ export const Navbar: React.FC = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center justify-center space-x-8 flex-1">
             <Link to="/about" className="text-gray-700 hover:text-primary transition-colors">About</Link>
             <Link to="/podcast" className="text-gray-700 hover:text-primary transition-colors">Podcast</Link>
             <Link to="/shop" className="text-gray-700 hover:text-primary transition-colors">Shop</Link>
