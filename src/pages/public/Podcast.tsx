@@ -5,7 +5,6 @@ import { Button } from '../../components/Button';
 import { Mic, Youtube, Music, Play, ChevronLeft, ChevronRight, Star, TrendingUp, Clock, Volume2 } from 'lucide-react';
 import { fetchPodcastEpisodes, PODCAST_INFO, PodcastEpisode, getSpotifyEpisodeEmbed } from '../../lib/podcast';
 import { PiPVideoPlayer, InlineAudioPlayer } from '../../components/VideoPlayer';
-import { StickyVideoPlayer } from '../../components/StickyVideoPlayer';
 import { GuestApplicationForm } from '../../components/GuestApplicationForm';
 
 const Podcast: React.FC = () => {
@@ -15,6 +14,7 @@ const Podcast: React.FC = () => {
   const [pipPlayer, setPipPlayer] = useState<{ embedUrl: string; episode: PodcastEpisode } | null>(null);
   const [audioPlayer, setAudioPlayer] = useState<PodcastEpisode | null>(null);
   const [showGuestForm, setShowGuestForm] = useState(false);
+  const [featuredVideoPlaying, setFeaturedVideoPlaying] = useState(false);
   const latestPerView = 3;
 
   useEffect(() => {
@@ -46,8 +46,6 @@ const Podcast: React.FC = () => {
     const embedUrl = getSpotifyEpisodeEmbed(episode);
     if (embedUrl) {
       setPipPlayer({ embedUrl, episode });
-    } else {
-      console.error('No embed URL found for episode:', episode.title);
     }
   };
 
@@ -110,7 +108,7 @@ const Podcast: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* Featured Video Episode - Sticky Player */}
+              {/* Featured Video Episode */}
               {featuredEpisode && (
                 <section className="mb-20">
                   <div className="flex items-center justify-between mb-6">
@@ -121,22 +119,41 @@ const Podcast: React.FC = () => {
                     </div>
                   </div>
                   <div className="grid lg:grid-cols-3 gap-8 bg-gray-50 rounded-2xl p-8">
-                    {/* Sticky Embedded Video Player */}
+                    {/* Video Player */}
                     <div className="lg:col-span-2">
-                      {getSpotifyEpisodeEmbed(featuredEpisode) ? (
-                        <StickyVideoPlayer
-                          embedUrl={getSpotifyEpisodeEmbed(featuredEpisode)!}
-                          title={featuredEpisode.title}
-                          coverImage={featuredEpisode.coverImage}
-                        />
-                      ) : (
-                        <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center">
-                          <div className="text-center">
-                            <Mic className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                            <p className="text-gray-600">Video not available</p>
+                      <div className="aspect-video bg-black rounded-xl overflow-hidden shadow-2xl relative">
+                        {!featuredVideoPlaying && featuredEpisode.coverImage ? (
+                          <>
+                            <img 
+                              src={featuredEpisode.coverImage} 
+                              alt={featuredEpisode.title}
+                              className="w-full h-full object-cover"
+                            />
+                            <button
+                              onClick={() => setFeaturedVideoPlaying(true)}
+                              className="absolute inset-0 bg-black/50 hover:bg-black/40 transition-colors flex items-center justify-center group"
+                            >
+                              <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xl">
+                                <Play className="w-10 h-10 text-primary ml-2" />
+                              </div>
+                            </button>
+                          </>
+                        ) : getSpotifyEpisodeEmbed(featuredEpisode) ? (
+                          <iframe
+                            src={getSpotifyEpisodeEmbed(featuredEpisode)!}
+                            className="w-full h-full"
+                            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                            allowFullScreen
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-white">
+                            <div className="text-center">
+                              <Mic className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                              <p>Video player loading...</p>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                     
                     {/* Episode Details */}
@@ -147,23 +164,17 @@ const Podcast: React.FC = () => {
                       <p className="text-gray-600 mb-6 line-clamp-4">
                         {featuredEpisode.description}
                       </p>
-                      <div className="flex flex-wrap gap-3">
+                      <div className="flex flex-col gap-3">
                         {featuredEpisode.audioUrl && (
                           <Button 
                             size="sm" 
                             onClick={() => playAudio(featuredEpisode)}
-                            className="flex items-center gap-2"
+                            className="flex items-center justify-center gap-2 w-full"
                           >
                             <Volume2 className="w-4 h-4" />
                             Listen (Audio Only)
                           </Button>
                         )}
-                        <a href={PODCAST_INFO.youtubePlaylist} target="_blank" rel="noopener noreferrer">
-                          <Button variant="outline" size="sm" className="flex items-center gap-2">
-                            <Youtube className="w-4 h-4" />
-                            YouTube
-                          </Button>
-                        </a>
                       </div>
                     </div>
                   </div>
@@ -195,7 +206,6 @@ const Podcast: React.FC = () => {
                   <div className="grid md:grid-cols-3 gap-6">
                     {latestEpisodes.slice(latestStartIndex, latestStartIndex + latestPerView).map((episode) => (
                       <div key={episode.id} className="group cursor-pointer">
-                        {/* Thumbnail - Click to play video in PiP */}
                         <div 
                           className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden mb-3 relative"
                           onClick={() => playVideo(episode)}
@@ -218,7 +228,6 @@ const Podcast: React.FC = () => {
                           </div>
                         </div>
                         
-                        {/* Info */}
                         <div className="text-xs text-gray-500 mb-1">
                           {new Date(episode.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                           {episode.duration && ` • ${episode.duration}`}
@@ -227,7 +236,6 @@ const Podcast: React.FC = () => {
                           {episode.title}
                         </h3>
                         
-                        {/* Listen button - Audio only */}
                         {episode.audioUrl && (
                           <button
                             onClick={(e) => {
@@ -257,7 +265,6 @@ const Podcast: React.FC = () => {
                     {topEpisodes.map((episode, idx) => (
                       <div key={episode.id} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-shadow group">
                         <div className="flex gap-4">
-                          {/* Small Thumbnail */}
                           <div 
                             className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex-shrink-0 overflow-hidden relative cursor-pointer"
                             onClick={() => playVideo(episode)}
@@ -275,7 +282,6 @@ const Podcast: React.FC = () => {
                             )}
                           </div>
                           
-                          {/* Info */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-xs font-bold text-primary">#{idx + 1}</span>
@@ -349,7 +355,7 @@ const Podcast: React.FC = () => {
             <Mic className="w-12 h-12 text-primary mx-auto mb-4" />
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Want to Share Your Story?</h2>
             <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-              We're looking for ambitious builders with compelling insights to share with our community
+              We are looking for ambitious builders with compelling insights to share with our community
             </p>
             <Button size="lg" onClick={() => setShowGuestForm(true)}>
               Submit Guest Application
@@ -358,7 +364,7 @@ const Podcast: React.FC = () => {
         </div>
       </div>
 
-      {/* Picture-in-Picture Video Player */}
+      {/* PiP Video Player */}
       {pipPlayer && (
         <PiPVideoPlayer
           videoUrl={pipPlayer.embedUrl}
@@ -370,7 +376,7 @@ const Podcast: React.FC = () => {
         />
       )}
 
-      {/* Inline Audio Player */}
+      {/* Audio Player */}
       {audioPlayer && (
         <InlineAudioPlayer
           audioUrl={audioPlayer.audioUrl}
@@ -380,7 +386,7 @@ const Podcast: React.FC = () => {
         />
       )}
 
-      {/* Guest Application Form Popup */}
+      {/* Guest Form */}
       {showGuestForm && (
         <GuestApplicationForm onClose={() => setShowGuestForm(false)} />
       )}
