@@ -183,7 +183,7 @@ const Podcast: React.FC = () => {
                       <div key={episode.id} className="group">
                         <div 
                           className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden mb-3 relative cursor-pointer"
-                          onClick={watchOnYouTube}
+                          onClick={() => watchOnYouTube(episode)}
                         >
                           {episode.coverImage ? (
                             <img 
