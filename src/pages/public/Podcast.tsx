@@ -37,8 +37,12 @@ const Podcast: React.FC = () => {
     setAudioPlayer(episode);
   };
 
-  const watchOnYouTube = () => {
-    window.open(PODCAST_INFO.youtubePlaylist, '_blank');
+  const watchOnYouTube = (episode?: PodcastEpisode) => {
+    if (episode?.youtubeUrl) {
+      window.open(episode.youtubeUrl, '_blank');
+    } else {
+      window.open(PODCAST_INFO.youtubePlaylist, '_blank');
+    }
   };
 
   const featuredEpisode = episodes[0];
