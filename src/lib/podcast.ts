@@ -16,57 +16,99 @@ export const PODCAST_INFO = {
   rss: 'https://anchor.fm/s/10e9edcac/podcast/rss',
   youtube: 'https://www.youtube.com/@GlobalCitizenNetwork',
   youtubePlaylist: 'https://youtube.com/playlist?list=PL9fKbOngNj6Ac9wdzaJjxbDua3ZVe4270&si=wTB9x4RHi1hQremv',
+  youtubePlaylistId: 'PL9fKbOngNj6Ac9wdzaJjxbDua3ZVe4270',
   spotify: 'https://open.spotify.com/show/6yUjD35JA5VRfHzHw2gCX9?si=37ba2ca4a859484e',
   spotifyEmbed: 'https://open.spotify.com/embed/show/6yUjD35JA5VRfHzHw2gCX9/video',
   applePodcast: 'https://podcasts.apple.com/us/podcast/future-foundations-building-beyond-borders/id1874863146',
   appleEmbed: 'https://embed.podcasts.apple.com/us/podcast/future-foundations-building-beyond-borders/id1874863146',
 };
 
-// Parse RSS feed
-export const fetchPodcastEpisodes = async (): Promise<PodcastEpisode[]> => {
+const YOUTUBE_API_KEY = 'AIzaSyCP87YC9sr6lcdjyLn_GmTaGz2qTsPdpJ8';
+
+// Fetch YouTube videos from playlist
+const fetchYouTubeVideos = async (): Promise<Map<string, string>> => {
   try {
     const response = await fetch(
-      `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(PODCAST_INFO.rss)}`
+      `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${PODCAST_INFO.youtubePlaylistId}&maxResults=50&key=${YOUTUBE_API_KEY}`
     );
     const data = await response.json();
     
-    if (data.status !== 'ok') {
+    if (!data.items) return new Map();
+    
+    // Create map of video titles to video IDs
+    const videoMap = new Map<string, string>();
+    data.items.forEach((item: any) => {
+      const title = item.snippet.title.toLowerCase();
+      const videoId = item.snippet.resourceId.videoId;
+      videoMap.set(title, `https://www.youtube.com/watch?v=${videoId}`);
+    });
+    
+    return videoMap;
+  } catch (error) {
+    console.error('Error fetching YouTube videos:', error);
+    return new Map();
+  }
+};
+
+// Match episode titles to YouTube videos
+const matchEpisodeToYouTube = (episodeTitle: string, videoMap: Map<string, string>): string | undefined => {
+  const normalizedTitle = episodeTitle.toLowerCase();
+  
+  // Try exact match first
+  if (videoMap.has(normalizedTitle)) {
+    return videoMap.get(normalizedTitle);
+  }
+  
+  // Try fuzzy matching - find video with most matching words
+  let bestMatch: { url: string; score: number } | null = null;
+  
+  for (const [videoTitle, videoUrl] of videoMap.entries()) {
+    const episodeWords = normalizedTitle.split(' ').filter(w => w.length > 3);
+    const videoWords = videoTitle.split(' ').filter(w => w.length > 3);
+    
+    let matchScore = 0;
+    episodeWords.forEach(word => {
+      if (videoWords.some(vw => vw.includes(word) || word.includes(vw))) {
+        matchScore++;
+      }
+    });
+    
+    if (matchScore > 0 && (!bestMatch || matchScore > bestMatch.score)) {
+      bestMatch = { url: videoUrl, score: matchScore };
+    }
+  }
+  
+  return bestMatch?.url;
+};
+
+// Parse RSS feed and match with YouTube
+export const fetchPodcastEpisodes = async (): Promise<PodcastEpisode[]> => {
+  try {
+    // Fetch both RSS and YouTube data
+    const [rssResponse, youtubeVideos] = await Promise.all([
+      fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(PODCAST_INFO.rss)}`),
+      fetchYouTubeVideos()
+    ]);
+    
+    const rssData = await rssResponse.json();
+    
+    if (rssData.status !== 'ok') {
       throw new Error('Failed to fetch podcast feed');
     }
 
-    return data.items.slice(0, 20).map((item: any, index: number) => {
-      // Try multiple methods to extract Spotify episode ID
-      let spotifyEpisodeId = null;
-      
-      // Method 1: From GUID
-      if (item.guid) {
-        const guidMatch = item.guid.match(/episode[\/:]([a-zA-Z0-9]{22})/);
-        if (guidMatch) spotifyEpisodeId = guidMatch[1];
-      }
-      
-      // Method 2: From link
-      if (!spotifyEpisodeId && item.link) {
-        const linkMatch = item.link.match(/episode[\/:]([a-zA-Z0-9]{22})/);
-        if (linkMatch) spotifyEpisodeId = linkMatch[1];
-      }
-      
-      // Method 3: From enclosure URL
-      if (!spotifyEpisodeId && item.enclosure?.link) {
-        const enclosureMatch = item.enclosure.link.match(/episode[\/:]([a-zA-Z0-9]{22})/);
-        if (enclosureMatch) spotifyEpisodeId = enclosureMatch[1];
-      }
-
-      console.log('Episode:', item.title, 'Spotify ID:', spotifyEpisodeId); // Debug log
+    return rssData.items.slice(0, 20).map((item: any, index: number) => {
+      // Match episode to YouTube video
+      const youtubeUrl = matchEpisodeToYouTube(item.title, youtubeVideos);
       
       return {
         id: item.guid || `episode-${index}`,
         title: item.title,
         description: item.description?.replace(/<[^>]*>/g, '') || '',
         audioUrl: item.enclosure?.link || '',
-        spotifyUrl: spotifyEpisodeId ? `https://open.spotify.com/episode/${spotifyEpisodeId}` : null,
+        youtubeUrl,
         publishedAt: item.pubDate,
         duration: item.itunes?.duration || '',
-        coverImage: item.thumbnail || item.image || data.feed?.image || '',
+        coverImage: item.thumbnail || item.image || rssData.feed?.image || '',
         guid: item.guid,
         link: item.link,
       };
@@ -77,34 +119,7 @@ export const fetchPodcastEpisodes = async (): Promise<PodcastEpisode[]> => {
   }
 };
 
-// Helper to get Spotify episode embed URL
+// No longer needed - using YouTube URLs directly
 export const getSpotifyEpisodeEmbed = (episode: PodcastEpisode): string | null => {
-  // Try to extract from multiple sources
-  let episodeId = null;
-  
-  // From GUID
-  if (episode.guid) {
-    const match = episode.guid.match(/episode[\/:]([a-zA-Z0-9]{22})/);
-    if (match) episodeId = match[1];
-  }
-  
-  // From link
-  if (!episodeId && episode.link) {
-    const match = episode.link.match(/episode[\/:]([a-zA-Z0-9]{22})/);
-    if (match) episodeId = match[1];
-  }
-  
-  // From audioUrl
-  if (!episodeId && episode.audioUrl) {
-    const match = episode.audioUrl.match(/episode[\/:]([a-zA-Z0-9]{22})/);
-    if (match) episodeId = match[1];
-  }
-
-  if (episodeId) {
-    console.log('Embed URL for', episode.title, ':', `https://open.spotify.com/embed/episode/${episodeId}/video`);
-    return `https://open.spotify.com/embed/episode/${episodeId}/video?utm_source=generator`;
-  }
-
-  console.warn('No Spotify episode ID found for:', episode.title);
   return null;
 };
