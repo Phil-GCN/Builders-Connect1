@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { X, Maximize2, Minimize2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Maximize2, Minimize2, Volume2 } from 'lucide-react';
 
 interface VideoPlayerProps {
-  videoUrl?: string;
+  videoUrl: string;
   audioUrl?: string;
   title: string;
   coverImage?: string;
@@ -19,21 +19,9 @@ export const PiPVideoPlayer: React.FC<VideoPlayerProps> = ({
   onClose 
 }) => {
   const [isMinimized, setIsMinimized] = useState(false);
-  const [position, setPosition] = useState({ x: 20, y: 20 });
+  const [position, setPosition] = useState({ x: window.innerWidth - 520, y: 100 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-
-  // Extract video ID from YouTube URL
-  const getYouTubeEmbedUrl = (url: string) => {
-    const videoId = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/)?.[1];
-    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1` : null;
-  };
-
-  // Extract Spotify embed URL
-  const getSpotifyEmbedUrl = (url: string) => {
-    const episodeId = url.match(/episode\/([a-zA-Z0-9]+)/)?.[1];
-    return episodeId ? `https://open.spotify.com/embed/episode/${episodeId}?utm_source=generator` : null;
-  };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.player-controls')) return;
@@ -47,8 +35,8 @@ export const PiPVideoPlayer: React.FC<VideoPlayerProps> = ({
   const handleMouseMove = (e: MouseEvent) => {
     if (!isDragging) return;
     setPosition({
-      x: e.clientX - dragOffset.x,
-      y: e.clientY - dragOffset.y
+      x: Math.max(0, Math.min(window.innerWidth - 480, e.clientX - dragOffset.x)),
+      y: Math.max(0, Math.min(window.innerHeight - 300, e.clientY - dragOffset.y))
     });
   };
 
@@ -56,7 +44,7 @@ export const PiPVideoPlayer: React.FC<VideoPlayerProps> = ({
     setIsDragging(false);
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
@@ -65,11 +53,7 @@ export const PiPVideoPlayer: React.FC<VideoPlayerProps> = ({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging]);
-
-  const embedUrl = type === 'video' && videoUrl 
-    ? getYouTubeEmbedUrl(videoUrl) || getSpotifyEmbedUrl(videoUrl)
-    : null;
+  }, [isDragging, dragOffset]);
 
   return (
     <div
@@ -83,7 +67,7 @@ export const PiPVideoPlayer: React.FC<VideoPlayerProps> = ({
       onMouseDown={handleMouseDown}
     >
       {/* Header */}
-      <div className="bg-gray-900 text-white px-4 py-2 flex items-center justify-between player-controls">
+      <div className="bg-gray-900 text-white px-4 py-2 flex items-center justify-between player-controls cursor-default">
         <h4 className="text-sm font-medium truncate flex-1">{title}</h4>
         <div className="flex items-center gap-2">
           <button
@@ -104,15 +88,15 @@ export const PiPVideoPlayer: React.FC<VideoPlayerProps> = ({
       {/* Player */}
       {!isMinimized && (
         <div className="aspect-video bg-black">
-          {type === 'video' && embedUrl ? (
+          {type === 'video' && videoUrl ? (
             <iframe
-              src={embedUrl}
+              src={videoUrl}
               className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
               allowFullScreen
             />
           ) : type === 'audio' && audioUrl ? (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20 p-6">
               {coverImage && (
                 <img 
                   src={coverImage} 
@@ -123,7 +107,7 @@ export const PiPVideoPlayer: React.FC<VideoPlayerProps> = ({
               <audio
                 controls
                 autoPlay
-                className="w-full px-4"
+                className="w-full"
                 src={audioUrl}
               />
             </div>
@@ -138,29 +122,39 @@ export const PiPVideoPlayer: React.FC<VideoPlayerProps> = ({
   );
 };
 
-// Inline Audio Player (for "Listen" buttons)
+// Inline Audio Player with Close Button
 export const InlineAudioPlayer: React.FC<{ 
   audioUrl: string; 
   title: string;
   coverImage?: string;
-}> = ({ audioUrl, title, coverImage }) => {
+  onClose: () => void;
+}> = ({ audioUrl, title, coverImage, onClose }) => {
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl z-40 player-controls">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl z-40">
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex items-center gap-4">
           {coverImage && (
             <img 
               src={coverImage} 
               alt={title}
-              className="w-16 h-16 rounded-lg"
+              className="w-16 h-16 rounded-lg flex-shrink-0"
             />
           )}
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-gray-900 truncate">{title}</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-semibold text-gray-900 truncate">{title}</p>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0 ml-4"
+                title="Close player"
+              >
+                <X className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
             <audio
               controls
               autoPlay
-              className="w-full mt-2"
+              className="w-full"
               src={audioUrl}
             />
           </div>
