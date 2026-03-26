@@ -12,7 +12,7 @@ const Podcast: React.FC = () => {
   const [episodes, setEpisodes] = useState<PodcastEpisode[]>([]);
   const [loading, setLoading] = useState(true);
   const [latestStartIndex, setLatestStartIndex] = useState(0);
-  const [pipPlayer, setPipPlayer] = useState<{ episode: PodcastEpisode; type: 'video' | 'audio' } | null>(null);
+  const [pipPlayer, setPipPlayer] = useState<{ embedUrl: string; episode: PodcastEpisode } | null>(null);
   const [audioPlayer, setAudioPlayer] = useState<PodcastEpisode | null>(null);
   const [showGuestForm, setShowGuestForm] = useState(false);
   const latestPerView = 3;
@@ -45,7 +45,9 @@ const Podcast: React.FC = () => {
     setAudioPlayer(null);
     const embedUrl = getSpotifyEpisodeEmbed(episode);
     if (embedUrl) {
-      setPipPlayer({ episode, type: 'video' });
+      setPipPlayer({ embedUrl, episode });
+    } else {
+      console.error('No embed URL found for episode:', episode.title);
     }
   };
 
@@ -109,7 +111,7 @@ const Podcast: React.FC = () => {
           ) : (
             <>
               {/* Featured Video Episode - Sticky Player */}
-              {featuredEpisode && getSpotifyEpisodeEmbed(featuredEpisode) && (
+              {featuredEpisode && (
                 <section className="mb-20">
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold text-gray-900">Latest Episode</h2>
@@ -121,11 +123,20 @@ const Podcast: React.FC = () => {
                   <div className="grid lg:grid-cols-3 gap-8 bg-gray-50 rounded-2xl p-8">
                     {/* Sticky Embedded Video Player */}
                     <div className="lg:col-span-2">
-                      <StickyVideoPlayer
-                        embedUrl={getSpotifyEpisodeEmbed(featuredEpisode)!}
-                        title={featuredEpisode.title}
-                        coverImage={featuredEpisode.coverImage}
-                      />
+                      {getSpotifyEpisodeEmbed(featuredEpisode) ? (
+                        <StickyVideoPlayer
+                          embedUrl={getSpotifyEpisodeEmbed(featuredEpisode)!}
+                          title={featuredEpisode.title}
+                          coverImage={featuredEpisode.coverImage}
+                        />
+                      ) : (
+                        <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center">
+                          <div className="text-center">
+                            <Mic className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                            <p className="text-gray-600">Video not available</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     {/* Episode Details */}
@@ -150,7 +161,7 @@ const Podcast: React.FC = () => {
                         <a href={PODCAST_INFO.youtubePlaylist} target="_blank" rel="noopener noreferrer">
                           <Button variant="outline" size="sm" className="flex items-center gap-2">
                             <Youtube className="w-4 h-4" />
-                            YouTube Playlist
+                            YouTube
                           </Button>
                         </a>
                       </div>
@@ -333,7 +344,7 @@ const Podcast: React.FC = () => {
             </>
           )}
 
-          {/* Guest CTA - Opens Popup Form */}
+          {/* Guest CTA */}
           <section className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-12 text-center">
             <Mic className="w-12 h-12 text-primary mx-auto mb-4" />
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Want to Share Your Story?</h2>
@@ -348,13 +359,13 @@ const Podcast: React.FC = () => {
       </div>
 
       {/* Picture-in-Picture Video Player */}
-      {pipPlayer && getSpotifyEpisodeEmbed(pipPlayer.episode) && (
+      {pipPlayer && (
         <PiPVideoPlayer
-          videoUrl={getSpotifyEpisodeEmbed(pipPlayer.episode)!}
+          videoUrl={pipPlayer.embedUrl}
           audioUrl={pipPlayer.episode.audioUrl}
           title={pipPlayer.episode.title}
           coverImage={pipPlayer.episode.coverImage}
-          type={pipPlayer.type}
+          type="video"
           onClose={() => setPipPlayer(null)}
         />
       )}
@@ -365,6 +376,7 @@ const Podcast: React.FC = () => {
           audioUrl={audioPlayer.audioUrl}
           title={audioPlayer.title}
           coverImage={audioPlayer.coverImage}
+          onClose={() => setAudioPlayer(null)}
         />
       )}
 
