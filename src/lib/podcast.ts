@@ -9,6 +9,7 @@ export interface PodcastEpisode {
   duration?: string;
   coverImage?: string;
   guid?: string;
+  link?: string;
 }
 
 export const PODCAST_INFO = {
@@ -34,10 +35,28 @@ export const fetchPodcastEpisodes = async (): Promise<PodcastEpisode[]> => {
     }
 
     return data.items.slice(0, 20).map((item: any, index: number) => {
-      // Extract Spotify episode ID from GUID
-      const guid = item.guid || '';
-      const spotifyMatch = guid.match(/episode\/([a-zA-Z0-9]{22})/);
-      const spotifyEpisodeId = spotifyMatch ? spotifyMatch[1] : null;
+      // Try multiple methods to extract Spotify episode ID
+      let spotifyEpisodeId = null;
+      
+      // Method 1: From GUID
+      if (item.guid) {
+        const guidMatch = item.guid.match(/episode[\/:]([a-zA-Z0-9]{22})/);
+        if (guidMatch) spotifyEpisodeId = guidMatch[1];
+      }
+      
+      // Method 2: From link
+      if (!spotifyEpisodeId && item.link) {
+        const linkMatch = item.link.match(/episode[\/:]([a-zA-Z0-9]{22})/);
+        if (linkMatch) spotifyEpisodeId = linkMatch[1];
+      }
+      
+      // Method 3: From enclosure URL
+      if (!spotifyEpisodeId && item.enclosure?.link) {
+        const enclosureMatch = item.enclosure.link.match(/episode[\/:]([a-zA-Z0-9]{22})/);
+        if (enclosureMatch) spotifyEpisodeId = enclosureMatch[1];
+      }
+
+      console.log('Episode:', item.title, 'Spotify ID:', spotifyEpisodeId); // Debug log
       
       return {
         id: item.guid || `episode-${index}`,
@@ -47,8 +66,9 @@ export const fetchPodcastEpisodes = async (): Promise<PodcastEpisode[]> => {
         spotifyUrl: spotifyEpisodeId ? `https://open.spotify.com/episode/${spotifyEpisodeId}` : null,
         publishedAt: item.pubDate,
         duration: item.itunes?.duration || '',
-        coverImage: item.thumbnail || data.feed?.image || '',
+        coverImage: item.thumbnail || item.image || data.feed?.image || '',
         guid: item.guid,
+        link: item.link,
       };
     });
   } catch (error) {
@@ -59,8 +79,32 @@ export const fetchPodcastEpisodes = async (): Promise<PodcastEpisode[]> => {
 
 // Helper to get Spotify episode embed URL
 export const getSpotifyEpisodeEmbed = (episode: PodcastEpisode): string | null => {
-  if (!episode.guid) return null;
-  const match = episode.guid.match(/episode\/([a-zA-Z0-9]{22})/);
-  if (!match) return null;
-  return `https://open.spotify.com/embed/episode/${match[1]}/video?utm_source=generator`;
+  // Try to extract from multiple sources
+  let episodeId = null;
+  
+  // From GUID
+  if (episode.guid) {
+    const match = episode.guid.match(/episode[\/:]([a-zA-Z0-9]{22})/);
+    if (match) episodeId = match[1];
+  }
+  
+  // From link
+  if (!episodeId && episode.link) {
+    const match = episode.link.match(/episode[\/:]([a-zA-Z0-9]{22})/);
+    if (match) episodeId = match[1];
+  }
+  
+  // From audioUrl
+  if (!episodeId && episode.audioUrl) {
+    const match = episode.audioUrl.match(/episode[\/:]([a-zA-Z0-9]{22})/);
+    if (match) episodeId = match[1];
+  }
+
+  if (episodeId) {
+    console.log('Embed URL for', episode.title, ':', `https://open.spotify.com/embed/episode/${episodeId}/video`);
+    return `https://open.spotify.com/embed/episode/${episodeId}/video?utm_source=generator`;
+  }
+
+  console.warn('No Spotify episode ID found for:', episode.title);
+  return null;
 };
