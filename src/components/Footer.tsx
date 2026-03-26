@@ -11,7 +11,7 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="col-span-1">
-            <h3 className="text-2xl font-bold mb-4">BUILDERSCONNECT</h3>
+            <h3 className="text-2xl font-bold mb-4">BUILDERS CONNECT</h3>
             <p className="text-gray-400 text-sm">
               Design your life beyond default settings.
             </p>
@@ -25,7 +25,6 @@ export const Footer: React.FC = () => {
               <li><Link to="/podcast" className="text-gray-400 hover:text-white transition-colors">Podcast</Link></li>
               <li><Link to="/shop" className="text-gray-400 hover:text-white transition-colors">Shop</Link></li>
               <li><Link to="/community" className="text-gray-400 hover:text-white transition-colors">Community</Link></li>
-              <li><Link to="/work-with-us" className="text-gray-400 hover:text-white transition-colors">Contact Us</Link></li>
             </ul>
           </div>
 
@@ -34,8 +33,7 @@ export const Footer: React.FC = () => {
             <h4 className="font-semibold mb-4">Resources</h4>
             <ul className="space-y-2 text-sm">
               <li><Link to="/resources" className="text-gray-400 hover:text-white transition-colors">Blog</Link></li>
-              <li><Link to="/work-with-us" className="text-gray-400 hover:text-white transition-colors">Work With Us</Link></li>
-              <li><a href="mailto:hello@buildersconnect.org" className="text-gray-400 hover:text-white transition-colors">Contact</a></li>
+              <li><Link to="/work-with-us" className="text-gray-400 hover:text-white transition-colors">Contact Us</Link></li>
             </ul>
           </div>
 
