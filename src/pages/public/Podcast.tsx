@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Navbar } from '../../components/Navbar';
 import { Footer } from '../../components/Footer';
 import { Button } from '../../components/Button';
-import { Mic, Youtube, Music, Play, ChevronLeft, ChevronRight, Star, TrendingUp, Clock, Volume2, X } from 'lucide-react';
-import { fetchPodcastEpisodes, PODCAST_INFO, PodcastEpisode, getSpotifyEpisodeEmbed } from '../../lib/podcast';
+import { Mic, Youtube, Music, ChevronLeft, ChevronRight, Star, TrendingUp, Clock, Volume2, X, ExternalLink } from 'lucide-react';
+import { fetchPodcastEpisodes, PODCAST_INFO, PodcastEpisode } from '../../lib/podcast';
 import { GuestApplicationForm } from '../../components/GuestApplicationForm';
 
 const Podcast: React.FC = () => {
@@ -12,7 +12,6 @@ const Podcast: React.FC = () => {
   const [latestStartIndex, setLatestStartIndex] = useState(0);
   const [showGuestForm, setShowGuestForm] = useState(false);
   const [audioPlayer, setAudioPlayer] = useState<PodcastEpisode | null>(null);
-  const [videoPlayer, setVideoPlayer] = useState<PodcastEpisode | null>(null);
   const latestPerView = 3;
 
   useEffect(() => {
@@ -22,8 +21,6 @@ const Podcast: React.FC = () => {
   const loadEpisodes = async () => {
     setLoading(true);
     const data = await fetchPodcastEpisodes();
-    console.log('📺 Loaded episodes:', data.length);
-    console.log('📺 First episode:', data[0]);
     setEpisodes(data);
     setLoading(false);
   };
@@ -37,24 +34,11 @@ const Podcast: React.FC = () => {
   };
 
   const playAudio = (episode: PodcastEpisode) => {
-    console.log('🔊 Playing audio:', episode.title);
-    setVideoPlayer(null);
     setAudioPlayer(episode);
   };
 
-  const playVideo = (episode: PodcastEpisode) => {
-    console.log('🎬 Attempting to play video:', episode.title);
-    const embedUrl = getSpotifyEpisodeEmbed(episode);
-    console.log('🎬 Embed URL:', embedUrl);
-    
-    if (embedUrl) {
-      console.log('✅ Opening video player');
-      setAudioPlayer(null);
-      setVideoPlayer(episode);
-    } else {
-      console.error('❌ No embed URL found for episode');
-      alert('Video not available for this episode. Try clicking "Listen" for audio.');
-    }
+  const watchOnYouTube = () => {
+    window.open(PODCAST_INFO.youtubePlaylist, '_blank');
   };
 
   const featuredEpisode = episodes[0];
@@ -62,11 +46,6 @@ const Podcast: React.FC = () => {
   const topEpisodes = episodes.slice(0, 6);
 
   const spotifyShowEmbed = `${PODCAST_INFO.spotifyEmbed}?utm_source=generator&theme=0`;
-
-  // Debug: Log video player state
-  useEffect(() => {
-    console.log('🎥 Video player state:', videoPlayer ? videoPlayer.title : 'null');
-  }, [videoPlayer]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -123,7 +102,7 @@ const Podcast: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* Featured Episode */}
+              {/* Featured Episode - Spotify Video Embed */}
               {featuredEpisode && (
                 <section className="mb-20">
                   <div className="flex items-center justify-between mb-6">
@@ -173,7 +152,7 @@ const Podcast: React.FC = () => {
                 </section>
               )}
 
-              {/* Latest Episodes - DEBUG VERSION */}
+              {/* Latest Episodes - YouTube Links */}
               {latestEpisodes.length > 0 && (
                 <section className="mb-20">
                   <div className="flex items-center justify-between mb-6">
@@ -198,13 +177,9 @@ const Podcast: React.FC = () => {
                   <div className="grid md:grid-cols-3 gap-6">
                     {latestEpisodes.slice(latestStartIndex, latestStartIndex + latestPerView).map((episode) => (
                       <div key={episode.id} className="group">
-                        {/* Clickable Thumbnail */}
                         <div 
                           className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden mb-3 relative cursor-pointer"
-                          onClick={() => {
-                            console.log('🖱️ Thumbnail clicked:', episode.title);
-                            playVideo(episode);
-                          }}
+                          onClick={watchOnYouTube}
                         >
                           {episode.coverImage ? (
                             <img 
@@ -218,8 +193,11 @@ const Podcast: React.FC = () => {
                             </div>
                           )}
                           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                              <Play className="w-6 h-6 text-primary ml-1" />
+                            <div className="flex flex-col items-center gap-2">
+                              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                                <Youtube className="w-6 h-6 text-red-600" />
+                              </div>
+                              <span className="text-white text-xs font-medium">Watch on YouTube</span>
                             </div>
                           </div>
                         </div>
@@ -236,7 +214,6 @@ const Podcast: React.FC = () => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              console.log('🖱️ Listen button clicked:', episode.title);
                               playAudio(episode);
                             }}
                             className="text-xs text-primary font-medium flex items-center gap-1 hover:gap-2 transition-all"
@@ -262,16 +239,18 @@ const Podcast: React.FC = () => {
                     {topEpisodes.map((episode, idx) => (
                       <div 
                         key={episode.id} 
-                        className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-shadow group cursor-pointer" 
-                        onClick={() => playVideo(episode)}
+                        className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-shadow group"
                       >
                         <div className="flex gap-4">
-                          <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex-shrink-0 overflow-hidden group-hover:scale-105 transition-transform">
+                          <div 
+                            className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex-shrink-0 overflow-hidden cursor-pointer"
+                            onClick={watchOnYouTube}
+                          >
                             {episode.coverImage ? (
                               <img 
                                 src={episode.coverImage} 
                                 alt={episode.title}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
@@ -292,10 +271,7 @@ const Podcast: React.FC = () => {
                             </h4>
                             {episode.audioUrl && (
                               <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  playAudio(episode);
-                                }}
+                                onClick={() => playAudio(episode)}
                                 className="text-xs text-primary font-medium flex items-center gap-1 hover:gap-2 transition-all"
                               >
                                 <Volume2 className="w-3 h-3" />
@@ -318,7 +294,11 @@ const Podcast: React.FC = () => {
                 </div>
                 <div className="grid md:grid-cols-4 gap-4">
                   {episodes.slice(3, 7).map((episode) => (
-                    <div key={episode.id} className="group cursor-pointer" onClick={() => playVideo(episode)}>
+                    <div 
+                      key={episode.id} 
+                      className="group cursor-pointer" 
+                      onClick={watchOnYouTube}
+                    >
                       <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg overflow-hidden mb-2 relative">
                         {episode.coverImage ? (
                           <img 
@@ -331,10 +311,8 @@ const Podcast: React.FC = () => {
                             <Mic className="w-10 h-10 text-gray-400" />
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                            <Play className="w-5 h-5 text-primary ml-0.5" />
-                          </div>
+                        <div className="absolute top-2 right-2">
+                          <ExternalLink className="w-4 h-4 text-white drop-shadow-lg" />
                         </div>
                       </div>
                       <h4 className="font-medium text-sm text-gray-900 line-clamp-2 group-hover:text-primary transition-colors">
@@ -348,7 +326,7 @@ const Podcast: React.FC = () => {
           )}
 
           {/* Guest CTA */}
-          <section className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-12 text-center">
+          <section className="bg-gray-50 rounded-2xl p-12 text-center">
             <Mic className="w-12 h-12 text-primary mx-auto mb-4" />
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Want to Share Your Story?</h2>
             <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
@@ -361,44 +339,48 @@ const Podcast: React.FC = () => {
         </div>
       </div>
 
-      {/* PiP Video Player - VISIBLE DEBUG */}
-      {videoPlayer && (
-        <div className="fixed bottom-6 right-6 w-[480px] z-50 bg-red-500 rounded-xl shadow-2xl overflow-hidden">
-          <div className="bg-gray-900 text-white px-4 py-2 flex items-center justify-between">
-            <h4 className="text-sm font-medium truncate flex-1">
-              {videoPlayer.title} - {getSpotifyEpisodeEmbed(videoPlayer) ? '✅ HAS URL' : '❌ NO URL'}
-            </h4>
-            <button
-              onClick={() => {
-                console.log('❌ Closing video player');
-                setVideoPlayer(null);
-              }}
-              className="p-1 hover:bg-white/10 rounded transition-colors ml-2"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="aspect-video bg-black">
-            {getSpotifyEpisodeEmbed(videoPlayer) ? (
-              <iframe
-                src={getSpotifyEpisodeEmbed(videoPlayer)!}
-                className="w-full h-full"
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                allowFullScreen
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-white">
-                NO EMBED URL FOUND
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Audio Player */}
       {audioPlayer && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl z-40">
           <div className="max-w-7xl mx-auto px-4 py-4">
             <div className="flex items-center gap-4">
               {audioPlayer.coverImage && (
-                <img
+                <img 
+                  src={audioPlayer.coverImage} 
+                  alt={audioPlayer.title}
+                  className="w-16 h-16 rounded-lg flex-shrink-0"
+                />
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-semibold text-gray-900 truncate">{audioPlayer.title}</p>
+                  <button
+                    onClick={() => setAudioPlayer(null)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0 ml-4"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <audio
+                  controls
+                  autoPlay
+                  className="w-full"
+                  src={audioPlayer.audioUrl}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guest Form */}
+      {showGuestForm && (
+        <GuestApplicationForm onClose={() => setShowGuestForm(false)} />
+      )}
+
+      <Footer />
+    </div>
+  );
+};
+
+export default
