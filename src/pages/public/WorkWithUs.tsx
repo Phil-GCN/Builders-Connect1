@@ -78,7 +78,7 @@ const WorkWithUs: React.FC = () => {
       id: 'partnership',
       label: 'Partnership Opportunity',
       icon: Handshake,
-      email: 'hello@buildersconnect.org',
+      email: 'partnerships@buildersconnect.org',
       description: 'Explore collaborations, joint ventures, or strategic partnerships',
       fields: ['partnership_type']
     },
