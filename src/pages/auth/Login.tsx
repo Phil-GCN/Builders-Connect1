@@ -116,7 +116,6 @@ const Login: React.FC = () => {
             </Button>
           </form>
 
-          // At the bottom of the form, replace the existing paragraph with:
           <div className="space-y-4">
             <p className="text-center text-gray-600">
               Don't have an account?{' '}
@@ -124,17 +123,17 @@ const Login: React.FC = () => {
                 Create one here
               </Link>
             </p>
-            <p className="text-center text-xs text-gray-500">
-              By signing in, you agree to our Terms of Service and Privacy Policy
-            </p>
           </div>
           
           <p className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{' '}
-            <Link to="/signup" className="text-primary hover:text-primary/80 font-semibold">
-              Create one
+            <Link to="/signup" className="text-primary hover:text-primary/80 underline font-semibold">
+              Create one here
             </Link>
           </p>
+          <p className="text-center text-xs text-gray-500">
+              By signing in, you agree to our Terms of Service and Privacy Policy
+            </p>
         </div>
 
         <div className="text-center mt-6">
