@@ -477,9 +477,9 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
               placeholder="https://buy.stripe.com/test_..."
             />
             <p className="text-sm text-gray-500 mt-1">
-              
+              <a 
                 href="https://dashboard.stripe.com/test/payment-links"
-                target="_blank"
+                target="_blank" 
                 rel="noopener noreferrer"
                 className="text-primary hover:underline"
               >
