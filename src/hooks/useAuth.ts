@@ -1,21 +1,14 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-
-interface User {
-  id: string;
-  email: string;
-  role: string;
-}
+import { User } from '../types';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
     checkSession();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         loadUserProfile(session.user.id);
@@ -47,13 +40,36 @@ export const useAuth = () => {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, email, role')
+        .select(`
+          id,
+          email,
+          full_name,
+          role_id,
+          created_at,
+          updated_at,
+          role:role_id (
+            id,
+            name,
+            display_name,
+            level,
+            permissions
+          )
+        `)
         .eq('id', userId)
         .single();
 
       if (error) throw error;
 
-      setUser(data);
+      // Flatten role data for easier access
+      const userWithRole: User = {
+        ...data,
+        role_name: data.role?.name,
+        role_display_name: data.role?.display_name,
+        role_level: data.role?.level,
+        permissions: data.role?.permissions || []
+      };
+
+      setUser(userWithRole);
     } catch (error) {
       console.error('Error loading user profile:', error);
       setUser(null);
@@ -62,5 +78,29 @@ export const useAuth = () => {
     }
   };
 
-  return { user, loading };
+  const hasPermission = (permission: string): boolean => {
+    if (!user?.permissions) return false;
+    
+    // Super admin has all permissions
+    if (user.permissions.includes('*')) return true;
+    
+    return user.permissions.includes(permission);
+  };
+
+  const hasRole = (roleName: string): boolean => {
+    return user?.role_name === roleName;
+  };
+
+  const hasMinimumRole = (requiredLevel: number): boolean => {
+    return (user?.role_level || 0) >= requiredLevel;
+  };
+
+  return { 
+    user, 
+    loading, 
+    hasPermission, 
+    hasRole, 
+    hasMinimumRole,
+    reload: () => user && loadUserProfile(user.id)
+  };
 };
