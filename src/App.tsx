@@ -13,6 +13,7 @@ import Portal from './pages/portal/Portal';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ProductDetail from './pages/public/ProductDetail';
 import Settings from './pages/admin/Settings';
+import { ProtectedRoute } from './components/ProtectedRoute'; // Add import
 
 const App: React.FC = () => {
   return (
@@ -33,10 +34,30 @@ const App: React.FC = () => {
       
       {/* Member Portal */}
       <Route path="/portal/*" element={<Portal />} />
+       
+        // Wrap member portal:
+      <Route path="/portal" element={
+        <ProtectedRoute>
+          <Portal />
+        </ProtectedRoute>
+      } />
       
       {/* Admin */}
       <Route path="/admin/*" element={<AdminDashboard />} />
       <Route path="/admin/settings" element={<Settings />} />
+      
+        // Wrap admin routes:
+      <Route path="/admin" element={
+        <ProtectedRoute requiredRole="super_admin">
+          <AdminDashboard />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/admin/settings" element={
+        <ProtectedRoute requiredRole="super_admin">
+          <Settings />
+        </ProtectedRoute>
+      } />
       
       {/* 404 */}
       <Route path="*" element={<div className="min-h-screen flex items-center justify-center"><h1 className="text-4xl">404 - Page Not Found</h1></div>} />
