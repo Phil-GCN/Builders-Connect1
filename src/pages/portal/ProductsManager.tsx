@@ -232,7 +232,7 @@ const ProductsManager: React.FC = () => {
                       </td>
                       <td className="px-6 py-4">
                         {product.stripe_payment_link ? (
-                          
+                      <a
                             href={product.stripe_payment_link}
                             target="_blank"
                             rel="noopener noreferrer"
