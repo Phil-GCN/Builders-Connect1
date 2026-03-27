@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { Navbar } from '../../components/Navbar';
+import { Settings as SettingsIcon } from 'lucide-react';
 import { BarChart3, Users, ShoppingCart, Mail, Settings } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
@@ -76,6 +77,17 @@ const AdminDashboard: React.FC = () => {
             </div>
           </div>
 
+          // In the Quick Actions or Navigation section:
+          <Link to="/admin/settings">
+            <button className="flex items-center gap-3 w-full p-4 bg-white rounded-xl border-2 border-gray-200 hover:border-primary transition-colors">
+              <SettingsIcon className="w-6 h-6 text-primary" />
+              <div className="text-left">
+                <p className="font-semibold text-gray-900">Settings</p>
+                <p className="text-sm text-gray-600">Manage API keys & config</p>
+              </div>
+            </button>
+          </Link>
+          
           {/* Quick Actions */}
           <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-white rounded-xl shadow-md p-6">
