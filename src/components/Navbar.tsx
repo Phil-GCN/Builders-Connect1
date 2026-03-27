@@ -52,9 +52,9 @@ export const Navbar: React.FC = () => {
           <div className="hidden md:flex items-center gap-4">
             {user ? (
               <>
-                <Link to={user.role === 'super_admin' ? '/admin' : '/portal'}>
+                <Link to="/portal">
                   <Button variant="outline" size="sm">
-                    {user.role === 'super_admin' ? 'Admin' : 'Portal'}
+                    Portal
                   </Button>
                 </Link>
                 <Button 
@@ -110,12 +110,9 @@ export const Navbar: React.FC = () => {
               <div className="border-t border-gray-200 pt-4 mt-2 space-y-3">
                 {user ? (
                   <>
-                    <Link 
-                      to={user.role === 'super_admin' ? '/admin' : '/portal'}
-                      onClick={() => setIsOpen(false)}
-                    >
+                    <Link to="/portal" onClick={() => setIsOpen(false)}>
                       <Button variant="outline" size="sm" className="w-full">
-                        {user.role === 'super_admin' ? 'Admin Dashboard' : 'My Portal'}
+                        Portal
                       </Button>
                     </Link>
                     <Button 
