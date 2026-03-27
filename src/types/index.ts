@@ -221,3 +221,22 @@ export interface Product {
   created_at?: string;
   updated_at?: string;
 }
+
+// ... existing types ...
+
+export interface AppSetting {
+  id: string;
+  category: 'payment' | 'content' | 'email' | 'social' | 'app';
+  key: string;
+  value: string;
+  is_encrypted: boolean;
+  is_public: boolean;
+  description: string;
+  updated_by?: string;
+  updated_at?: string;
+  created_at?: string;
+}
+
+export interface SettingsMap {
+  [key: string]: string;
+}
