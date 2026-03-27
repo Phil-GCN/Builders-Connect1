@@ -1,22 +1,29 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Menu, X, User } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Menu, X, LogOut } from 'lucide-react';
+import { Button } from './Button';
 import { useAuth } from '../hooks/useAuth';
-import { LogOut } from 'lucide-react'; // Add to imports
-import { supabase } from '../lib/supabase'; // Add import
-import { useNavigate } from 'react-router-dom'; // Add import
+import { supabase } from '../lib/supabase';
 
 export const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useAuth();
-  
   const navigate = useNavigate();
-  
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/');
+    setIsOpen(false);
   };
- 
+
+  const navLinks = [
+    { to: '/about', label: 'About' },
+    { to: '/podcast', label: 'Podcast' },
+    { to: '/shop', label: 'Shop' },
+    { to: '/community', label: 'Community' },
+    { to: '/resources', label: 'Resources' },
+  ];
+
   return (
     <nav className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50">
       <div className="max-w-7xl mx-auto px-4">
@@ -28,19 +35,23 @@ export const Navbar: React.FC = () => {
 
           {/* Desktop Navigation - Centered */}
           <div className="hidden md:flex items-center justify-center flex-1 mx-8">
-            <div className="flex items-center space-x-8">
-              <Link to="/about" className="text-gray-700 hover:text-primary transition-colors">About</Link>
-              <Link to="/podcast" className="text-gray-700 hover:text-primary transition-colors">Podcast</Link>
-              <Link to="/shop" className="text-gray-700 hover:text-primary transition-colors">Shop</Link>
-              <Link to="/community" className="text-gray-700 hover:text-primary transition-colors">Community</Link>
-              <Link to="/resources" className="text-gray-700 hover:text-primary transition-colors">Resources</Link>
+            <div className="flex items-center gap-8">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className="text-gray-700 hover:text-primary transition-colors font-medium"
+                >
+                  {link.label}
+                </Link>
+              ))}
             </div>
           </div>
 
-          {/* Auth Buttons - Single Combined Button */}
+          {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center gap-4">
             {user ? (
-              <div className="flex items-center gap-4">
+              <>
                 <Link to={user.role === 'super_admin' ? '/admin' : '/portal'}>
                   <Button variant="outline" size="sm">
                     {user.role === 'super_admin' ? 'Admin' : 'Portal'}
@@ -55,9 +66,9 @@ export const Navbar: React.FC = () => {
                   <LogOut className="w-4 h-4" />
                   Sign Out
                 </Button>
-              </div>
+              </>
             ) : (
-              <div className="flex items-center gap-4">
+              <>
                 <Link to="/login">
                   <Button variant="outline" size="sm">
                     Sign In
@@ -68,38 +79,74 @@ export const Navbar: React.FC = () => {
                     Sign Up
                   </Button>
                 </Link>
-              </div>
+              </>
             )}
-
           </div>
 
-          {/* Mobile menu button */}
+          {/* Mobile Menu Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden p-2 rounded-lg hover:bg-gray-100"
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
           >
             {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
-      </div>
 
-      {/* Mobile Navigation */}
-      {isOpen && (
-        <div className="md:hidden border-t border-gray-200 bg-white">
-          <div className="px-4 py-4 space-y-3">
-            <Link to="/about" className="block text-gray-700 hover:text-primary" onClick={() => setIsOpen(false)}>About</Link>
-            <Link to="/podcast" className="block text-gray-700 hover:text-primary" onClick={() => setIsOpen(false)}>Podcast</Link>
-            <Link to="/shop" className="block text-gray-700 hover:text-primary" onClick={() => setIsOpen(false)}>Shop</Link>
-            <Link to="/community" className="block text-gray-700 hover:text-primary" onClick={() => setIsOpen(false)}>Community</Link>
-            <Link to="/resources" className="block text-gray-700 hover:text-primary" onClick={() => setIsOpen(false)}>Resources</Link>
-            {user ? (
-              <Link to="/portal" className="block text-gray-700 hover:text-primary" onClick={() => setIsOpen(false)}>Portal</Link>
-            ) : (
-              <Link to="/login" className="block text-gray-700 hover:text-primary" onClick={() => setIsOpen(false)}>Sign In</Link>
-            )}
+        {/* Mobile Menu */}
+        {isOpen && (
+          <div className="md:hidden py-4 border-t border-gray-200">
+            <div className="flex flex-col gap-4">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  onClick={() => setIsOpen(false)}
+                  className="text-gray-700 hover:text-primary transition-colors font-medium px-2 py-2"
+                >
+                  {link.label}
+                </Link>
+              ))}
+              
+              <div className="border-t border-gray-200 pt-4 mt-2 space-y-3">
+                {user ? (
+                  <>
+                    <Link 
+                      to={user.role === 'super_admin' ? '/admin' : '/portal'}
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <Button variant="outline" size="sm" className="w-full">
+                        {user.role === 'super_admin' ? 'Admin Dashboard' : 'My Portal'}
+                      </Button>
+                    </Link>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleLogout}
+                      className="w-full flex items-center justify-center gap-2"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/login" onClick={() => setIsOpen(false)}>
+                      <Button variant="outline" size="sm" className="w-full">
+                        Sign In
+                      </Button>
+                    </Link>
+                    <Link to="/signup" onClick={() => setIsOpen(false)}>
+                      <Button size="sm" className="w-full">
+                        Sign Up
+                      </Button>
+                    </Link>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </nav>
   );
 };
