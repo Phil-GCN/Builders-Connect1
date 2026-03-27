@@ -2,11 +2,21 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X, User } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { LogOut } from 'lucide-react'; // Add to imports
+import { supabase } from '../lib/supabase'; // Add import
+import { useNavigate } from 'react-router-dom'; // Add import
 
 export const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useAuth();
-
+  
+  const navigate = useNavigate();
+  
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/');
+  };
+ 
   return (
     <nav className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50">
       <div className="max-w-7xl mx-auto px-4">
@@ -30,19 +40,37 @@ export const Navbar: React.FC = () => {
           {/* Auth Buttons - Single Combined Button */}
           <div className="hidden md:flex items-center gap-4">
             {user ? (
-              <Link to={user ? '/portal' : '/login'}>
-                <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
-                  <User className="w-4 h-4" />
-                  <span>Portal</span>
-                </button>
-              </Link>
+              <div className="flex items-center gap-4">
+                <Link to={user.role === 'super_admin' ? '/admin' : '/portal'}>
+                  <Button variant="outline" size="sm">
+                    {user.role === 'super_admin' ? 'Admin' : 'Portal'}
+                  </Button>
+                </Link>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleLogout}
+                  className="flex items-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </Button>
+              </div>
             ) : (
-              <Link to="/login">
-                <button className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
-                  Sign In
-                </button>
-              </Link>
+              <div className="flex items-center gap-4">
+                <Link to="/login">
+                  <Button variant="outline" size="sm">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link to="/signup">
+                  <Button size="sm">
+                    Sign Up
+                  </Button>
+                </Link>
+              </div>
             )}
+
           </div>
 
           {/* Mobile menu button */}
