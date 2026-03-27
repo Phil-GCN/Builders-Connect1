@@ -249,4 +249,290 @@ const ProductsManager: React.FC = () => {
                           <button
                             onClick={() => toggleActive(product.id, product.is_active)}
                             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                            title={product.is_active ? 'Deactivate'
+                            title={product.is_active ? 'Deactivate' : 'Activate'}
+                          >
+                            {product.is_active ? (
+                              <EyeOff className="w-5 h-5 text-gray-600" />
+                            ) : (
+                              <Eye className="w-5 h-5 text-gray-600" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => setEditingProduct(product)}
+                            className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Edit"
+                          >
+                            <Edit2 className="w-5 h-5 text-blue-600" />
+                          </button>
+                          <button
+                            onClick={() => deleteProduct(product.id, product.name)}
+                            className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-5 h-5 text-red-600" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {(showAddModal || editingProduct) && (
+        <ProductFormModal
+          product={editingProduct}
+          onClose={() => {
+            setShowAddModal(false);
+            setEditingProduct(null);
+          }}
+          onSave={() => {
+            loadProducts();
+            setShowAddModal(false);
+            setEditingProduct(null);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+export default ProductsManager;
+
+interface ProductFormModalProps {
+  product: Product | null;
+  onClose: () => void;
+  onSave: () => void;
+}
+
+const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, onSave }) => {
+  const [formData, setFormData] = useState({
+    name: product?.name || '',
+    slug: product?.slug || '',
+    description: product?.description || '',
+    price: product?.price || 0,
+    product_type: product?.product_type || 'digital',
+    image_url: product?.image_url || '',
+    stripe_payment_link: product?.stripe_payment_link || '',
+    is_active: product?.is_active ?? true,
+  });
+  const [saving, setSaving] = useState(false);
+
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  };
+
+  const handleNameChange = (name: string) => {
+    setFormData(prev => ({
+      ...prev,
+      name,
+      slug: product ? prev.slug : generateSlug(name),
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+
+    try {
+      if (product) {
+        const { error } = await supabase
+          .from('products')
+          .update(formData)
+          .eq('id', product.id);
+
+        if (error) throw error;
+        alert('Product updated successfully!');
+      } else {
+        const { error } = await supabase
+          .from('products')
+          .insert([formData]);
+
+        if (error) throw error;
+        alert('Product created successfully!');
+      }
+
+      onSave();
+    } catch (error: any) {
+      console.error('Error saving product:', error);
+      alert(error.message || 'Failed to save product');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-2xl font-bold text-gray-900">
+            {product ? 'Edit Product' : 'Add New Product'}
+          </h2>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Product Name *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              placeholder="Built to Last: The Modern Guide..."
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              URL Slug *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.slug}
+              onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              placeholder="built-to-last"
+            />
+            <p className="text-sm text-gray-500 mt-1">
+              Will be used in URL: /shop/{formData.slug}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Description *
+            </label>
+            <textarea
+              required
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              rows={4}
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              placeholder="A comprehensive guide to building generational wealth..."
+            />
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Price (USD) *
+              </label>
+              <input
+                type="number"
+                required
+                step="0.01"
+                min="0"
+                value={formData.price}
+                onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) }))}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                placeholder="24.99"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Product Type *
+              </label>
+              <select
+                value={formData.product_type}
+                onChange={(e) => setFormData(prev => ({ ...prev, product_type: e.target.value as any }))}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              >
+                <option value="book">Book</option>
+                <option value="course">Course</option>
+                <option value="digital">Digital Product</option>
+                <option value="physical">Physical Product</option>
+                <option value="membership">Membership</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Image URL
+            </label>
+            <input
+              type="url"
+              value={formData.image_url}
+              onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value }))}
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              placeholder="https://example.com/product-image.jpg"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Stripe Payment Link
+            </label>
+            <input
+              type="url"
+              value={formData.stripe_payment_link}
+              onChange={(e) => setFormData(prev => ({ ...prev, stripe_payment_link: e.target.value }))}
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              placeholder="https://buy.stripe.com/test_..."
+            />
+            <p className="text-sm text-gray-500 mt-1">
+              
+                href="https://dashboard.stripe.com/test/payment-links"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                Create payment link in Stripe →
+              </a>
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="is_active"
+              checked={formData.is_active}
+              onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+              className="w-5 h-5 text-primary border-gray-300 rounded focus:ring-primary"
+            />
+            <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
+              Product is active and visible on shop page
+            </label>
+          </div>
+
+          <div className="flex gap-4 pt-4 border-t border-gray-200">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={saving}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={saving}
+              className="flex-1"
+            >
+              {saving ? (
+                <>
+                  <Loader className="w-5 h-5 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                product ? 'Update Product' : 'Create Product'
+              )}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
