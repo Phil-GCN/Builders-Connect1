@@ -115,19 +115,10 @@ const Login: React.FC = () => {
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
-
-          <div className="space-y-4">
-            <p className="text-center text-gray-600">
-              Don't have an account?{' '}
-              <Link to="/signup" className="text-primary font-semibold hover:underline">
-                Create one here
-              </Link>
-            </p>
-          </div>
           
           <p className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{' '}
-            <Link to="/signup" className="text-primary hover:text-primary/80 underline font-semibold">
+            <Link to="/signup" className="text-primary hover:text-primary/80 hover:underline font-semibold">
               Create one here
             </Link>
           </p>
