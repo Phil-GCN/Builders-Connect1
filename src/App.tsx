@@ -12,6 +12,7 @@ import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import Portal from './pages/portal/Portal';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import OrderSuccess from './pages/public/OrderSuccess'; // Add import
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
         <Route path="/work-with-us" element={<WorkWithUs />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/order/success" element={<OrderSuccess />} />
         
         {/* Protected Portal - All authenticated users */}
         <Route path="/portal/*" element={
