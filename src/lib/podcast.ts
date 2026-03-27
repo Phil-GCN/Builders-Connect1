@@ -1,3 +1,40 @@
+import { supabase } from './supabase';
+
+// Fetch settings once and cache
+let cachedSettings: any = null;
+
+const getSettings = async () => {
+  if (cachedSettings) return cachedSettings;
+
+  const { data } = await supabase
+    .from('app_settings')
+    .select('key, value')
+    .eq('is_public', true);
+
+  cachedSettings = {};
+  data?.forEach(setting => {
+    cachedSettings[setting.key] = setting.value;
+  });
+
+  return cachedSettings;
+};
+
+export const PODCAST_INFO = {
+  get rss() { return cachedSettings?.podcast_rss_url || 'https://anchor.fm/s/10e9edcac/podcast/rss'; },
+  get youtube() { return cachedSettings?.youtube_channel_url || 'https://www.youtube.com/@GlobalCitizenNetwork'; },
+  get youtubePlaylist() { return cachedSettings?.youtube_playlist_url || 'https://youtube.com/playlist?list=PL9fKbOngNj6Ac9wdzaJjxbDua3ZVe4270'; },
+  get youtubePlaylistId() { return cachedSettings?.youtube_playlist_id || 'PL9fKbOngNj6Ac9wdzaJjxbDua3ZVe4270'; },
+  get spotify() { return cachedSettings?.spotify_show_url || 'https://open.spotify.com/show/6yUjD35JA5VRfHzHw2gCX9'; },
+  get spotifyEmbed() { return cachedSettings?.spotify_embed_url || 'https://open.spotify.com/embed/show/6yUjD35JA5VRfHzHw2gCX9/video'; },
+  get applePodcast() { return cachedSettings?.apple_podcast_url || 'https://podcasts.apple.com/us/podcast/future-foundations-building-beyond-borders/id1874863146'; },
+  get appleEmbed() { return 'https://embed.podcasts.apple.com/us/podcast/future-foundations-building-beyond-borders/id1874863146'; },
+};
+
+// Initialize settings on module load
+getSettings();
+
+// Rest of your existing podcast.ts code...
+
 export interface PodcastEpisode {
   id: string;
   title: string;
