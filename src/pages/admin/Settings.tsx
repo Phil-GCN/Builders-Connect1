@@ -45,7 +45,6 @@ const Settings: React.FC = () => {
       if (error) throw error;
       setSettings(data || []);
 
-      // Initialize edited values
       const values: { [key: string]: string } = {};
       data?.forEach(setting => {
         values[setting.key] = setting.value;
@@ -71,7 +70,6 @@ const Settings: React.FC = () => {
 
       if (error) throw error;
 
-      // Update local state
       setSettings(prev => prev.map(s => 
         s.key === key ? { ...s, value: editedValues[key] } : s
       ));
@@ -108,7 +106,6 @@ const Settings: React.FC = () => {
   return (
     <div className="p-8">
       <div className="max-w-5xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Settings Manager</h1>
           <p className="text-gray-600 mt-2">
@@ -116,7 +113,6 @@ const Settings: React.FC = () => {
           </p>
         </div>
 
-        {/* Category Tabs */}
         <div className="border-b border-gray-200 mb-8">
           <div className="flex gap-8">
             {categories.map(cat => (
@@ -135,7 +131,6 @@ const Settings: React.FC = () => {
           </div>
         </div>
 
-        {/* Settings List */}
         <div className="space-y-6">
           {filteredSettings.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
@@ -161,101 +156,4 @@ const Settings: React.FC = () => {
                         {setting.key === 'stripe_publishable_key' && (
                           
                             href="https://dashboard.stripe.com/test/apikeys"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-primary hover:underline flex items-center gap-1"
-                          >
-                            Get from Stripe <ExternalLink className="w-3 h-3" />
-                          </a>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-600">{setting.description}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <div className="flex-1 relative">
-                      {setting.key === 'stripe_enabled' ? (
-                        <select
-                          value={editedValues[setting.key]}
-                          onChange={(e) => handleValueChange(setting.key, e.target.value)}
-                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                        >
-                          <option value="true">Enabled</option>
-                          <option value="false">Disabled</option>
-                        </select>
-                      ) : (
-                        <input
-                          type={shouldMask ? 'password' : 'text'}
-                          value={editedValues[setting.key] || ''}
-                          onChange={(e) => handleValueChange(setting.key, e.target.value)}
-                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                          placeholder={`Enter ${setting.key}`}
-                        />
-                      )}
-                      {isSecret && (
-                        <button
-                          onClick={() => toggleSecret(setting.key)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                        >
-                          {shouldMask ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-                        </button>
-                      )}
-                    </div>
-
-                    <Button
-                      onClick={() => handleSave(setting.key)}
-                      disabled={!hasChanged || saving}
-                      className={`${hasChanged ? 'bg-green-600 hover:bg-green-700' : ''}`}
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      {hasChanged ? 'Save' : 'Saved'}
-                    </Button>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* Stripe Dashboard Link */}
-        {activeTab === 'payment' && (
-          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
-            <h3 className="font-semibold text-blue-900 mb-2">Stripe Dashboard</h3>
-            <p className="text-sm text-blue-700 mb-4">
-              Manage payments, view transactions, and configure webhooks in your Stripe dashboard.
-            </p>
-            <div className="flex gap-3">
-              
-                href="https://dashboard.stripe.com/test/apikeys"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-              >
-                API Keys <ExternalLink className="w-4 h-4" />
-              </a>
-              
-                href="https://dashboard.stripe.com/test/payments"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-              >
-                Payments <ExternalLink className="w-4 h-4" />
-              </a>
-              
-                href="https://dashboard.stripe.com/test/webhooks"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-              >
-                Webhooks <ExternalLink className="w-4 h-4" />
-              </a>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default Settings;
+                            target="_blan
