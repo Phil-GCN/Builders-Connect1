@@ -1,17 +1,25 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import type { Product } from '../types';
+
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  image_url?: string;
+  features?: string[];
+  is_active: boolean;
+}
 
 export const useProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchProducts();
+    loadProducts();
   }, []);
 
-  const fetchProducts = async () => {
+  const loadProducts = async () => {
     try {
       const { data, error } = await supabase
         .from('products')
@@ -20,13 +28,14 @@ export const useProducts = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+
       setProducts(data || []);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      console.error('Error loading products:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  return { products, loading, error, refetch: fetchProducts };
+  return { products, loading };
 };
