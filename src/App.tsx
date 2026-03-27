@@ -12,6 +12,7 @@ import Signup from './pages/auth/Signup';
 import Portal from './pages/portal/Portal';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ProductDetail from './pages/public/ProductDetail';
+import Settings from './pages/admin/Settings';
 
 const App: React.FC = () => {
   return (
@@ -35,6 +36,7 @@ const App: React.FC = () => {
       
       {/* Admin */}
       <Route path="/admin/*" element={<AdminDashboard />} />
+      <Route path="/admin/settings" element={<Settings />} />
       
       {/* 404 */}
       <Route path="*" element={<div className="min-h-screen flex items-center justify-center"><h1 className="text-4xl">404 - Page Not Found</h1></div>} />
