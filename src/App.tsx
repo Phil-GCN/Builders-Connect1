@@ -1,58 +1,36 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Home from './pages/public/Home';
-import About from './pages/public/About';
-import Shop from './pages/public/Shop';
-import ProductDetail from './pages/public/ProductDetail';
-import Podcast from './pages/public/Podcast';
-import Community from './pages/public/Community';
-import Resources from './pages/public/Resources';
-import WorkWithUs from './pages/public/WorkWithUs';
-import Login from './pages/auth/Login';
-import Signup from './pages/auth/Signup';
-import Portal from './pages/portal/Portal';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import Settings from './pages/admin/Settings';
-import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App() {
   return (
     <Router>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Home />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/shop" element={<Shop />} />
-        <Route path="/shop/:slug" element={<ProductDetail />} />
-        <Route path="/podcast" element={<Podcast />} />
-        <Route path="/community" element={<Community />} />
-        <Route path="/resources" element={<Resources />} />
-        <Route path="/work-with-us" element={<WorkWithUs />} />
+      <div className="min-h-screen bg-white p-8">
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">BuildersConnect - Debug Mode</h1>
+        <p className="text-xl text-gray-600 mb-8">If you can see this, React Router is working.</p>
         
-        {/* Auth Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        
-        {/* Protected Member Portal */}
-        <Route path="/portal" element={
-          <ProtectedRoute>
-            <Portal />
-          </ProtectedRoute>
-        } />
-        
-        {/* Protected Admin Routes - Super Admin Only */}
-        <Route path="/admin" element={
-          <ProtectedRoute requiredRole="super_admin">
-            <AdminDashboard />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/admin/settings" element={
-          <ProtectedRoute requiredRole="super_admin">
-            <Settings />
-          </ProtectedRoute>
-        } />
-      </Routes>
+        <Routes>
+          <Route path="/" element={
+            <div>
+              <h2 className="text-2xl font-bold mb-4">Home Page</h2>
+              <p>This is the home page.</p>
+            </div>
+          } />
+          
+          <Route path="/test" element={
+            <div>
+              <h2 className="text-2xl font-bold mb-4">Test Page</h2>
+              <p>This is a test page.</p>
+            </div>
+          } />
+          
+          <Route path="*" element={
+            <div>
+              <h2 className="text-2xl font-bold mb-4">404 - Not Found</h2>
+              <p>Page not found.</p>
+            </div>
+          } />
+        </Routes>
+      </div>
     </Router>
   );
 }
