@@ -263,13 +263,13 @@ const Home: React.FC = () => {
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             <Link to="/shop">
-              <Button size="lg" className="bg-white text-secondary hover:bg-gray-100">
+              <Button size="lg" className="bg-white text-secondary hover:bg-gray-100 hover:text-secondary font-semibold">
                 Explore Products
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
             <Link to="/community">
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
+              <Button size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-secondary font-semibold">
                 Join Community
               </Button>
             </Link>
