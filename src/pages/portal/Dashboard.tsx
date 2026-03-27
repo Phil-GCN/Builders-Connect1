@@ -5,6 +5,20 @@ import { Users, Package, FileText, TrendingUp } from 'lucide-react';
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
 
+  // Get display name - prefer full_name, fallback to email first part
+  const getDisplayName = () => {
+    if (user?.full_name) {
+      return user.full_name;
+    }
+    // Extract name from email (everything before @)
+    if (user?.email) {
+      const emailName = user.email.split('@')[0];
+      // Capitalize first letter
+      return emailName.charAt(0).toUpperCase() + emailName.slice(1);
+    }
+    return 'there';
+  };
+
   const stats = [
     { label: 'Total Users', value: '1,234', icon: Users, color: 'bg-blue-500' },
     { label: 'Active Products', value: '12', icon: Package, color: 'bg-green-500' },
@@ -18,7 +32,7 @@ const Dashboard: React.FC = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
-            Welcome back, {user?.full_name || user?.email}!
+            Welcome back, {getDisplayName()}!
           </h1>
           <p className="text-gray-600 mt-2">
             Here's what's happening with your platform today.
