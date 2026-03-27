@@ -11,6 +11,7 @@ import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import Portal from './pages/portal/Portal';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import ProductDetail from './pages/public/ProductDetail';
 
 const App: React.FC = () => {
   return (
@@ -19,6 +20,7 @@ const App: React.FC = () => {
       <Route path="/" element={<Home />} />
       <Route path="/about" element={<About />} />
       <Route path="/shop" element={<Shop />} />
+      <Route path="/shop/:slug" element={<ProductDetail />} />
       <Route path="/podcast" element={<Podcast />} />
       <Route path="/community" element={<Community />} />
       <Route path="/resources" element={<Resources />} />
