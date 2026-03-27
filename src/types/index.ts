@@ -105,6 +105,7 @@ export interface Product {
   author_bio?: string;
   testimonials?: Testimonial[];
   faqs?: FAQ[];
+  stripe_payment_link?: string; // ADD THIS LINE
   metadata?: any;
   created_at?: string;
   updated_at?: string;
