@@ -167,3 +167,57 @@ export interface PodcastEpisode {
   view_count: number;
   created_at: string;
 }
+
+// ... existing types ...
+
+export interface CampaignData {
+  type: 'pre_order' | 'launch' | 'sale' | 'limited_time';
+  original_price?: number;
+  discount_price?: number;
+  launch_date?: string;
+  end_date?: string;
+  bonus?: string;
+  badge?: string;
+}
+
+export interface PageSection {
+  type: 'hero' | 'parts' | 'features' | 'author_bio' | 'testimonials' | 'faq' | 'pricing' | 'gallery';
+  enabled: boolean;
+  data?: any;
+}
+
+export interface Testimonial {
+  quote: string;
+  author: string;
+  role: string;
+  rating: number;
+  image?: string;
+}
+
+export interface FAQ {
+  question: string;
+  answer: string;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  price: number;
+  product_type: 'book' | 'course' | 'membership' | 'digital' | 'physical';
+  image_url?: string;
+  features?: string[];
+  is_active: boolean;
+  campaign_data?: CampaignData;
+  page_sections?: {
+    sections: PageSection[];
+  };
+  archive_date?: string;
+  author_bio?: string;
+  testimonials?: Testimonial[];
+  faqs?: FAQ[];
+  metadata?: any;
+  created_at?: string;
+  updated_at?: string;
+}
