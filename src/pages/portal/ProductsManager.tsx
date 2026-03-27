@@ -338,7 +338,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
     setFormData(prev => ({
       ...prev,
       name,
-      slug: product ? prev.slug : generateSlug(name), // Only auto-generate for new products
+      slug: product ? prev.slug : generateSlug(name),
     }));
   };
 
@@ -348,7 +348,6 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
 
     try {
       if (product) {
-        // Update existing product
         const { error } = await supabase
           .from('products')
           .update(formData)
@@ -357,7 +356,6 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
         if (error) throw error;
         alert('Product updated successfully!');
       } else {
-        // Create new product
         const { error } = await supabase
           .from('products')
           .insert([formData]);
@@ -385,7 +383,6 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Product Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Product Name *
@@ -400,7 +397,6 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
             />
           </div>
 
-          {/* Slug */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               URL Slug *
@@ -418,7 +414,6 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
             </p>
           </div>
 
-          {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Description *
@@ -433,7 +428,6 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
             />
           </div>
 
-          {/* Price and Type */}
           <div className="grid md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -469,7 +463,6 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
             </div>
           </div>
 
-          {/* Image URL */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Image URL
@@ -483,7 +476,6 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
             />
           </div>
 
-          {/* Stripe Payment Link */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Stripe Payment Link
@@ -507,7 +499,6 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
             </p>
           </div>
 
-          {/* Active Status */}
           <div className="flex items-center gap-3">
             <input
               type="checkbox"
@@ -521,7 +512,6 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
             </label>
           </div>
 
-          {/* Actions */}
           <div className="flex gap-4 pt-4 border-t border-gray-200">
             <Button
               type="button"
