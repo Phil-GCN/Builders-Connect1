@@ -10,11 +10,16 @@ import Resources from './pages/public/Resources';
 import WorkWithUs from './pages/public/WorkWithUs';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
+import Portal from './pages/portal/Portal';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import Settings from './pages/admin/Settings';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App() {
   return (
     <Router>
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
         <Route path="/shop" element={<Shop />} />
@@ -26,10 +31,24 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         
-        <Route path="*" element={
-          <div className="min-h-screen flex items-center justify-center">
-            <h2 className="text-2xl font-bold">404</h2>
-          </div>
+        {/* Protected Member Portal */}
+        <Route path="/portal" element={
+          <ProtectedRoute>
+            <Portal />
+          </ProtectedRoute>
+        } />
+        
+        {/* Protected Admin Routes */}
+        <Route path="/admin" element={
+          <ProtectedRoute requiredRole="super_admin">
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/admin/settings" element={
+          <ProtectedRoute requiredRole="super_admin">
+            <Settings />
+          </ProtectedRoute>
         } />
       </Routes>
     </Router>
