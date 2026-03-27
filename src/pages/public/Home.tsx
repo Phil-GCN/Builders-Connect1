@@ -34,7 +34,7 @@ const Home: React.FC = () => {
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <Link to="/shop">
-                <Button size="lg" className="bg-white text-primary hover:bg-gray-100">
+                <Button size="lg" className="bg-white text-primary hover:bg-gray-100 font-semibold">
                   Explore Products
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
