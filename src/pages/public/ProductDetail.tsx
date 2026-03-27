@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Product } from '../../types';
+import { CheckoutButton } from '../../components/CheckoutButton';
 
 const ProductDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -184,10 +185,13 @@ const ProductDetail: React.FC = () => {
                   </div>
                 )}
 
-                <Button size="lg" className="w-full mb-4 flex items-center justify-center gap-2">
-                  <ShoppingCart className="w-5 h-5" />
-                  {hasActiveCampaign() ? `Pre-Order Now - $${getDisplayPrice()}` : `Buy Now - $${getDisplayPrice()}`}
-                </Button>
+                <CheckoutButton
+                  productId={product.id}
+                  productName={product.name}
+                  price={getDisplayPrice()}
+                  size="lg"
+                  className="w-full"
+                />
                 
                 <div className="flex items-center justify-center gap-6 text-sm text-gray-500">
                   <div className="flex items-center gap-2">
