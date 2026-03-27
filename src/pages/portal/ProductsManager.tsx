@@ -483,7 +483,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
                 rel="noopener noreferrer"
                 className="text-primary hover:underline"
               >
-                Create payment link in Stripe →
+                Create payment link in Stripe
               </a>
             </p>
           </div>
