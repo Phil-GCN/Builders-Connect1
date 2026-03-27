@@ -267,4 +267,139 @@ const Shop: React.FC = () => {
                   ].map((credential, idx) => (
                     <div key={idx} className="flex items-start gap-3">
                       <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-1" />
-                      <span className="text-gr
+                      <span className="text-gray-700">{credential}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Testimonials */}
+      <div className="py-20 px-4 bg-gray-50">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+              What Early Readers Say
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {[
+              {
+                quote: "Phil's frameworks completely changed how I think about building wealth. This isn't theory - it's practical, actionable, and transformative.",
+                author: "Sarah M.",
+                role: "Entrepreneur"
+              },
+              {
+                quote: "Finally, someone who gets it. Not fluffy motivation - real strategies from someone who's actually done it. Worth 10x the price.",
+                author: "David K.",
+                role: "Real Estate Investor"
+              },
+              {
+                quote: "The section on freedom alone is worth the entire book. Phil shows you exactly how to design life on your terms.",
+                author: "Jessica L.",
+                role: "Digital Nomad"
+              }
+            ].map((testimonial, idx) => (
+              <div key={idx} className="bg-white rounded-2xl p-8 shadow-md">
+                <div className="flex gap-1 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-5 h-5 text-accent fill-accent" />
+                  ))}
+                </div>
+                <p className="text-gray-700 mb-6 italic leading-relaxed">"{testimonial.quote}"</p>
+                <div>
+                  <p className="font-bold text-gray-900">{testimonial.author}</p>
+                  <p className="text-sm text-gray-500">{testimonial.role}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* FAQ */}
+      <div className="py-20 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+              Frequently Asked Questions
+            </h2>
+          </div>
+
+          <div className="space-y-6">
+            {[
+              {
+                q: "When will I receive the book?",
+                a: "Built to Last launches in February 2027. Pre-order customers will receive their copy on launch day, along with exclusive bonuses."
+              },
+              {
+                q: "What formats are available?",
+                a: "The book will be available in digital (PDF, ePub) and physical hardcover formats. Pre-order customers get lifetime access to the digital edition immediately upon launch."
+              },
+              {
+                q: "What if I'm not satisfied?",
+                a: "We offer a 100% satisfaction guarantee. If you're not happy with the book within 30 days of launch, we'll refund your purchase - no questions asked."
+              },
+              {
+                q: "Who is this book for?",
+                a: "Built to Last is for ambitious builders who want to design lives beyond default settings. Whether you're an entrepreneur, investor, or professional looking to build wealth and freedom, this book provides the frameworks you need."
+              },
+              {
+                q: "Will there be updates?",
+                a: "Yes! Digital edition customers receive lifetime access to all future updates and new frameworks as they're developed."
+              }
+            ].map((faq, idx) => (
+              <div key={idx} className="bg-gray-50 rounded-xl p-8">
+                <h3 className="text-xl font-bold text-gray-900 mb-3">{faq.q}</h3>
+                <p className="text-gray-600 leading-relaxed">{faq.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Final CTA */}
+      <div className="py-20 px-4 bg-primary text-white">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            Ready to Build Something That Lasts?
+          </h2>
+          <p className="text-xl mb-8 opacity-90">
+            Join 10,000+ ambitious builders designing lives beyond default settings
+          </p>
+          
+          <div className="bg-white rounded-2xl p-8 text-gray-900 max-w-md mx-auto mb-8">
+            <div className="flex items-baseline justify-center gap-4 mb-6">
+              <div className="text-5xl font-bold text-primary">$19</div>
+              <div className="text-2xl text-gray-400 line-through">$29</div>
+            </div>
+            <Button size="lg" className="w-full mb-4 bg-primary hover:bg-primary/90">
+              <ShoppingCart className="w-5 h-5 mr-2" />
+              Pre-Order Now
+            </Button>
+            <p className="text-sm text-gray-500">Limited time pre-order pricing</p>
+          </div>
+
+          <div className="flex items-center justify-center gap-8 text-sm opacity-80">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              <span>Money-back guarantee</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              <span>Instant digital access</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Footer />
+    </div>
+  );
+};
+
+export default Shop;
