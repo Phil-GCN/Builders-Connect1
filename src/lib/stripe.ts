@@ -2,9 +2,8 @@ import { loadStripe, Stripe } from '@stripe/stripe-js';
 
 let stripePromise: Promise<Stripe | null> | null = null;
 
-export const getStripe = async () => {
+export const getStripe = async (): Promise<Stripe | null> => {
   if (!stripePromise) {
-    // Get publishable key from environment or settings
     const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
     
     if (!publishableKey) {
@@ -17,29 +16,17 @@ export const getStripe = async () => {
 
   return stripePromise;
 };
+```
 
-export interface CheckoutSession {
-  sessionId: string;
-  url: string;
-}
+---
 
-export const createCheckoutSession = async (productId: string): Promise<CheckoutSession | null> => {
-  try {
-    const response = await fetch('/api/create-checkout-session', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ productId }),
-    });
+### **STEP 4: Create Supabase Edge Function for Checkout**
 
-    if (!response.ok) {
-      throw new Error('Failed to create checkout session');
-    }
+Since we can't run a backend server, we'll use Supabase Edge Functions.
 
-    return await response.json();
-  } catch (error) {
-    console.error('Error creating checkout session:', error);
-    return null;
-  }
-};
+**Action: Create a folder structure:**
+```
+supabase/
+└── functions/
+    └── create-checkout/
+        └── index.ts
