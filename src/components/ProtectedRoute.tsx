@@ -4,14 +4,16 @@ import { useAuth } from '../hooks/useAuth';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'super_admin' | 'content_manager' | 'moderator' | 'member';
+  requiredLevel?: number; // Role level required (1-4)
+  requiredPermission?: string; // Specific permission required
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  requiredRole 
+  requiredLevel,
+  requiredPermission
 }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, hasMinimumRole, hasPermission } = useAuth();
 
   if (loading) {
     return (
@@ -28,21 +30,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" replace />;
   }
 
-  // Role hierarchy check
-  if (requiredRole) {
-    const roleHierarchy = {
-      'super_admin': 4,
-      'content_manager': 3,
-      'moderator': 2,
-      'member': 1
-    };
+  // Check role level
+  if (requiredLevel && !hasMinimumRole(requiredLevel)) {
+    return <Navigate to="/portal" replace />;
+  }
 
-    const userLevel = roleHierarchy[user.role as keyof typeof roleHierarchy] || 0;
-    const requiredLevel = roleHierarchy[requiredRole];
-
-    if (userLevel < requiredLevel) {
-      return <Navigate to="/portal" replace />;
-    }
+  // Check specific permission
+  if (requiredPermission && !hasPermission(requiredPermission)) {
+    return <Navigate to="/portal" replace />;
   }
 
   return <>{children}</>;
