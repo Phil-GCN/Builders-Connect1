@@ -1,18 +1,45 @@
-import { loadStripe } from '@stripe/stripe-js';
+import { loadStripe, Stripe } from '@stripe/stripe-js';
 
-const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+let stripePromise: Promise<Stripe | null> | null = null;
 
-if (!stripePublishableKey) {
-  console.warn('Stripe publishable key not found');
+export const getStripe = async () => {
+  if (!stripePromise) {
+    // Get publishable key from environment or settings
+    const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+    
+    if (!publishableKey) {
+      console.error('Stripe publishable key not found');
+      return null;
+    }
+
+    stripePromise = loadStripe(publishableKey);
+  }
+
+  return stripePromise;
+};
+
+export interface CheckoutSession {
+  sessionId: string;
+  url: string;
 }
 
-export const stripePromise = stripePublishableKey 
-  ? loadStripe(stripePublishableKey)
-  : null;
+export const createCheckoutSession = async (productId: string): Promise<CheckoutSession | null> => {
+  try {
+    const response = await fetch('/api/create-checkout-session', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ productId }),
+    });
 
-// Helper to create checkout session
-export const createCheckoutSession = async (productId: string, priceId: string) => {
-  // This will be implemented when we add Stripe backend
-  console.log('Creating checkout for:', productId, priceId);
-  // TODO: Call Supabase edge function to create Stripe session
+    if (!response.ok) {
+      throw new Error('Failed to create checkout session');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error creating checkout session:', error);
+    return null;
+  }
 };
