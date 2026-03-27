@@ -6,6 +6,7 @@ import {
   Plus, Edit2, Trash2, Eye, EyeOff, Search, 
   ExternalLink, DollarSign, Package, Loader 
 } from 'lucide-react';
+import { ImageUpload } from '../../components/ImageUpload';
 
 const ProductsManager: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -454,14 +455,12 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Image URL
+              Product Image
             </label>
-            <input
-              type="url"
-              value={formData.image_url}
-              onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value }))}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-              placeholder="https://example.com/product-image.jpg"
+            <ImageUpload
+              currentImageUrl={formData.image_url}
+              onImageUploaded={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
+              onImageRemoved={() => setFormData(prev => ({ ...prev, image_url: '' }))}
             />
           </div>
 
