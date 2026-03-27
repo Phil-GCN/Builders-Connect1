@@ -11,8 +11,6 @@ import WorkWithUs from './pages/public/WorkWithUs';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import Portal from './pages/portal/Portal';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import Settings from './pages/admin/Settings';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App() {
@@ -31,23 +29,10 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         
-        {/* Protected Member Portal */}
-        <Route path="/portal" element={
+        {/* Protected Portal - All authenticated users */}
+        <Route path="/portal/*" element={
           <ProtectedRoute>
             <Portal />
-          </ProtectedRoute>
-        } />
-        
-        {/* Protected Admin Routes */}
-        <Route path="/admin" element={
-          <ProtectedRoute requiredRole="super_admin">
-            <AdminDashboard />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/admin/settings" element={
-          <ProtectedRoute requiredRole="super_admin">
-            <Settings />
           </ProtectedRoute>
         } />
       </Routes>
