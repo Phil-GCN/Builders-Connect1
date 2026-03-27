@@ -312,7 +312,6 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
     price: product?.price || 0,
     product_type: product?.product_type || 'digital',
     image_url: product?.image_url || '',
-    stripe_payment_link: product?.stripe_payment_link || '',
     is_active: product?.is_active ?? true,
   });
   const [saving, setSaving] = useState(false);
@@ -462,29 +461,6 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
               onImageUploaded={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
               onImageRemoved={() => setFormData(prev => ({ ...prev, image_url: '' }))}
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Stripe Payment Link
-            </label>
-            <input
-              type="url"
-              value={formData.stripe_payment_link}
-              onChange={(e) => setFormData(prev => ({ ...prev, stripe_payment_link: e.target.value }))}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-              placeholder="https://buy.stripe.com/test_..."
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              <a 
-                href="https://dashboard.stripe.com/test/payment-links"
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                Create payment link in Stripe
-              </a>
-            </p>
           </div>
 
           <div className="flex items-center gap-3">
