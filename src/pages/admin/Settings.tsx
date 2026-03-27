@@ -154,7 +154,7 @@ const Settings: React.FC = () => {
                           </span>
                         )}
                         {setting.key === 'stripe_publishable_key' && (
-                          
+                          <a 
                             href="https://dashboard.stripe.com/test/apikeys"
                             target="_blank"
                             rel="noopener noreferrer"
@@ -220,7 +220,7 @@ const Settings: React.FC = () => {
               Manage payments, view transactions, and configure webhooks in your Stripe dashboard.
             </p>
             <div className="flex gap-3">
-              
+              <a
                 href="https://dashboard.stripe.com/test/apikeys"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -228,7 +228,7 @@ const Settings: React.FC = () => {
               >
                 API Keys <ExternalLink className="w-4 h-4" />
               </a>
-              
+              <a
                 href="https://dashboard.stripe.com/test/payments"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -236,7 +236,7 @@ const Settings: React.FC = () => {
               >
                 Payments <ExternalLink className="w-4 h-4" />
               </a>
-              
+              <a
                 href="https://dashboard.stripe.com/test/webhooks"
                 target="_blank"
                 rel="noopener noreferrer"
