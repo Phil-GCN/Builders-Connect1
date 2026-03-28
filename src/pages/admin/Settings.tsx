@@ -194,7 +194,6 @@ const Settings: React.FC = () => {
                   </p>
                 </div>
                 
-                {/* WordPress-Style Toggle */}
                 <button
                   onClick={handleToggleMode}
                   disabled={saving}
@@ -254,7 +253,6 @@ const Settings: React.FC = () => {
 
             {/* Stripe Keys Section */}
             <div className="space-y-6">
-              {/* Test Keys */}
               <div className="bg-white rounded-xl border-2 border-gray-200 p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                   🧪 Test Mode Keys
@@ -265,7 +263,6 @@ const Settings: React.FC = () => {
                   )}
                 </h3>
 
-                {/* Test Publishable Key */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Publishable Key (Test)
@@ -280,12 +277,11 @@ const Settings: React.FC = () => {
                         placeholder="pk_test_..."
                       />
                       <button
+                        type="button"
                         onClick={() => toggleSecret('stripe_test_publishable_key')}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                       >
-                        {showSecrets['stripe_test_publishable_key'] ? 
-                          <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />
-                        }
+                        {showSecrets['stripe_test_publishable_key'] ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                     <Button
@@ -298,7 +294,6 @@ const Settings: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Test Secret Key */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Secret Key (Test)
@@ -313,12 +308,11 @@ const Settings: React.FC = () => {
                         placeholder="sk_test_..."
                       />
                       <button
+                        type="button"
                         onClick={() => toggleSecret('stripe_test_secret_key')}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                       >
-                        {showSecrets['stripe_test_secret_key'] ? 
-                          <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />
-                        }
+                        {showSecrets['stripe_test_secret_key'] ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                     <Button
@@ -332,7 +326,6 @@ const Settings: React.FC = () => {
                 </div>
               </div>
 
-              {/* Live Keys */}
               <div className="bg-white rounded-xl border-2 border-gray-200 p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                   🔴 Live Mode Keys
@@ -343,7 +336,6 @@ const Settings: React.FC = () => {
                   )}
                 </h3>
 
-                {/* Live Publishable Key */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Publishable Key (Live)
@@ -358,12 +350,11 @@ const Settings: React.FC = () => {
                         placeholder="pk_live_..."
                       />
                       <button
+                        type="button"
                         onClick={() => toggleSecret('stripe_live_publishable_key')}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                       >
-                        {showSecrets['stripe_live_publishable_key'] ? 
-                          <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />
-                        }
+                        {showSecrets['stripe_live_publishable_key'] ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                     <Button
@@ -376,7 +367,6 @@ const Settings: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Live Secret Key */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Secret Key (Live)
@@ -391,12 +381,11 @@ const Settings: React.FC = () => {
                         placeholder="sk_live_..."
                       />
                       <button
+                        type="button"
                         onClick={() => toggleSecret('stripe_live_secret_key')}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                       >
-                        {showSecrets['stripe_live_secret_key'] ? 
-                          <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />
-                        }
+                        {showSecrets['stripe_live_secret_key'] ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                     <Button
@@ -418,7 +407,7 @@ const Settings: React.FC = () => {
                 Manage payments, view transactions, and configure webhooks in your Stripe dashboard.
               </p>
               <div className="flex gap-3">
-                
+                <a
                   href="https://dashboard.stripe.com/test/apikeys"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -426,7 +415,7 @@ const Settings: React.FC = () => {
                 >
                   API Keys <ExternalLink className="w-4 h-4" />
                 </a>
-                
+                <a
                   href="https://dashboard.stripe.com/test/payments"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -434,7 +423,7 @@ const Settings: React.FC = () => {
                 >
                   Payments <ExternalLink className="w-4 h-4" />
                 </a>
-                
+                <a
                   href="https://dashboard.stripe.com/test/webhooks"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -487,6 +476,7 @@ const Settings: React.FC = () => {
                         />
                         {isSecret && (
                           <button
+                            type="button"
                             onClick={() => toggleSecret(setting.key)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                           >
