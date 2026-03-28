@@ -49,14 +49,16 @@ const OrderSuccess: React.FC = () => {
           {/* Session ID (for debugging) */}
           {sessionId && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
-              <p className="text-sm font-medium text-blue-900 mb-1">Order Reference</p>
-              <p className="text-xs text-blue-700 font-mono">{sessionId}</p>
+              <p className="text-sm font-medium text-blue-900 mb-1">Order Number</p>
+              <p className="text-2xl font-bold text-blue-900 font-mono tracking-wider">
+                ORDER-{new Date().getFullYear()}-{sessionId.slice(-8).toUpperCase()}
+              </p>
               <p className="text-xs text-blue-600 mt-2">
-                Save this reference number for your records
+                Save this order number for your records
               </p>
             </div>
-          )}
-          
+          )}  
+                    
           {/* Order Details */}
           <div className="bg-gray-50 rounded-2xl p-8 mb-8 text-left">
             <h2 className="text-xl font-bold text-gray-900 mb-4">What's Next?</h2>
