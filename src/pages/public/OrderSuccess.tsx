@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { Navbar } from '../../components/Navbar';
 import { Footer } from '../../components/Footer';
 import { Button } from '../../components/Button';
-import { CheckCircle, Download, ArrowRight } from 'lucide-react';
+import { CheckCircle, Download, ArrowRight, Loader } from 'lucide-react';
 
 const OrderSuccess: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -12,14 +12,15 @@ const OrderSuccess: React.FC = () => {
 
   useEffect(() => {
     // Simulate loading order details
-    setTimeout(() => setLoading(false), 1500);
+    const timer = setTimeout(() => setLoading(false), 1500);
+    return () => clearTimeout(timer);
   }, []);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <Loader className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Confirming your order...</p>
         </div>
       </div>
@@ -44,6 +45,13 @@ const OrderSuccess: React.FC = () => {
           <p className="text-xl text-gray-600 mb-8">
             Thank you for your pre-order. We've sent a confirmation email with your order details.
           </p>
+
+          {/* Session ID (for debugging) */}
+          {sessionId && (
+            <p className="text-sm text-gray-500 mb-8">
+              Order ID: {sessionId.substring(0, 20)}...
+            </p>
+          )}
 
           {/* Order Details */}
           <div className="bg-gray-50 rounded-2xl p-8 mb-8 text-left">
@@ -75,7 +83,7 @@ const OrderSuccess: React.FC = () => {
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900">Access Your Order</p>
-                  <p className="text-gray-600 text-sm">View order status and download digital content in your portal</p>
+                  <p className="text-gray-600 text-sm">View order status in your portal</p>
                 </div>
               </div>
             </div>
