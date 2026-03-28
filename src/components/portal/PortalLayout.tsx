@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
-  LayoutDashboard, Users, Package, FileText, BarChart3, Settings, 
+  LayoutDashboard, Users, Package, FileText, ShoppingCart, BarChart3, Settings, 
   LogOut, Menu, X, ChevronDown, MessageSquare, BookOpen 
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
