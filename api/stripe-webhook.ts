@@ -1,113 +1,145 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import { buffer } from 'micro';
-import Stripe from 'stripe'; // Import the official library
-
-// 1. Initialize Stripe (using the same key as your checkout)
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
-});
+import crypto from 'crypto';
 
 export const config = {
   api: {
-    bodyParser: false,
+    bodyParser: true,
   },
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  console.log('Webhook received:', req.method);
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const sig = req.headers['stripe-signature'] as string;
-  const buf = await buffer(req);
-
-  // Initialize Supabase
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
-
   try {
-    // 2. Get webhook secret from database (just like you did)
-    const { data: webhookSetting } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'stripe_webhook_secret')
-      .single();
+    const event = req.body;
 
-    const webhookSecret = webhookSetting?.value;
+    console.log('Event type:', event.type);
 
-    if (!webhookSecret) {
-      throw new Error('Webhook secret not found in app_settings');
+    // Initialize Supabase
+    const supabaseUrl = process.env.VITE_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Supabase not configured');
+      return res.status(500).json({ error: 'Supabase not configured' });
     }
 
-    // 3. SECURE VERIFICATION using the Stripe Library
-    // This replaces the manual 'require(crypto)' logic that was failing.
-    let event: Stripe.Event;
-    try {
-      event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
-    } catch (err: any) {
-      console.error(`Signature verification failed: ${err.message}`);
-      return res.status(400).send(`Webhook Error: ${err.message}`);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Handle checkout.session.completed
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object;
+
+      console.log('Processing checkout session:', session.id);
+
+      // Extract customer details
+      const customerEmail = session.customer_details?.email || session.customer_email || '';
+      const customerName = session.customer_details?.name || '';
+
+      // Extract metadata
+      const userId = session.client_reference_id || session.metadata?.user_id;
+      const productId = session.metadata?.product_id;
+
+      const orderData = {
+        user_id: userId,
+        product_id: productId,
+        stripe_payment_intent_id: session.payment_intent || session.id,
+        stripe_checkout_session_id: session.id,
+        amount: (session.amount_total || 0) / 100,
+        currency: (session.currency || 'usd').toUpperCase(),
+        status: 'completed',
+        customer_email: customerEmail,
+        customer_name: customerName,
+        paid_at: new Date().toISOString(),
+      };
+
+      console.log('Saving order with data:', JSON.stringify(orderData, null, 2));
+
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert(orderData)
+        .select()
+        .single();
+
+      if (orderError) {
+        console.error('Error saving order:', orderError);
+        return res.status(500).json({ 
+          error: 'Failed to save order', 
+          details: orderError.message,
+          data: orderData 
+        });
+      }
+
+      console.log('✅ Order saved successfully:', order.order_number);
+      return res.status(200).json({ 
+        received: true, 
+        order_number: order.order_number,
+        order_id: order.id 
+      });
     }
 
-    // 4. Handle Event Types
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.Checkout.Session;
+    // Handle payment_intent.succeeded
+    if (event.type === 'payment_intent.succeeded') {
+      const paymentIntent = event.data.object;
 
-        const { error: orderError } = await supabase
-          .from('orders')
-          .insert({
-            user_id: session.client_reference_id || session.metadata?.user_id,
-            product_id: session.metadata?.product_id,
-            stripe_payment_intent_id: session.payment_intent as string,
-            stripe_checkout_session_id: session.id,
-            amount: session.amount_total ? session.amount_total / 100 : 0,
-            currency: session.currency?.toUpperCase(),
-            status: 'completed',
-            customer_email: session.customer_details?.email,
-            customer_name: session.customer_details?.name,
-            paid_at: new Date().toISOString(),
-            metadata: session.metadata,
-          })
-          .single();
+      console.log('Updating payment intent:', paymentIntent.id);
 
-        if (orderError) {
-          console.error('Error saving order:', orderError);
-          return res.status(500).json({ error: 'Failed to save order' });
-        }
-        console.log('Order saved successfully');
-        break;
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({ 
+          status: 'completed',
+          paid_at: new Date().toISOString()
+        })
+        .eq('stripe_payment_intent_id', paymentIntent.id);
+
+      if (updateError) {
+        console.error('Error updating order:', updateError);
+      } else {
+        console.log('✅ Order status updated');
       }
 
-      case 'payment_intent.succeeded': {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        await supabase
-          .from('orders')
-          .update({ status: 'completed', paid_at: new Date().toISOString() })
-          .eq('stripe_payment_intent_id', paymentIntent.id);
-        break;
-      }
-
-      case 'charge.refunded': {
-        const charge = event.data.object as Stripe.Charge;
-        await supabase
-          .from('orders')
-          .update({
-            refund_status: charge.refunded ? 'full' : 'partial',
-            refund_amount: charge.amount_refunded / 100,
-            refunded_at: new Date().toISOString(),
-          })
-          .eq('stripe_payment_intent_id', charge.payment_intent as string);
-        break;
-      }
+      return res.status(200).json({ received: true });
     }
 
-    return res.status(200).json({ received: true });
+    // Handle charge.refunded
+    if (event.type === 'charge.refunded') {
+      const charge = event.data.object;
+      const refundAmount = (charge.amount_refunded || 0) / 100;
+
+      console.log('Processing refund for payment intent:', charge.payment_intent);
+
+      const { error: refundError } = await supabase
+        .from('orders')
+        .update({
+          refund_status: charge.refunded ? 'full' : 'partial',
+          refund_amount: refundAmount,
+          refunded_at: new Date().toISOString(),
+        })
+        .eq('stripe_payment_intent_id', charge.payment_intent);
+
+      if (refundError) {
+        console.error('Error updating refund:', refundError);
+      } else {
+        console.log('✅ Refund processed');
+      }
+
+      return res.status(200).json({ received: true });
+    }
+
+    console.log('Unhandled event type:', event.type);
+    return res.status(200).json({ received: true, unhandled: event.type });
 
   } catch (error: any) {
-    console.error('Webhook handler error:', error.message);
-    return res.status(400).json({ error: error.message });
+    console.error('❌ Webhook error:', error);
+    return res.status(400).json({ 
+      error: error.message, 
+      type: error.name,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 }
