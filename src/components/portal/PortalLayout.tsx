@@ -81,6 +81,13 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
       path: '/portal/settings',
       requiredLevel: 4, // Super Admin only
     },
+    {
+      id: 'orders',
+      label: 'Orders',
+      icon: ShoppingCart, // Import from lucide-react
+      path: '/portal/orders',
+      requiredLevel: 3,
+    },
   ];
 
   const filteredMenuItems = menuItems.filter(item => {
