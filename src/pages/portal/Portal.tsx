@@ -9,6 +9,7 @@ import UsersManager from './UsersManager';
 import ProductsManager from './ProductsManager';
 import ContentManager from './ContentManager';
 import CommunityManager from './CommunityManager';
+import OrdersManager from './OrdersManager';
 import Analytics from './Analytics';
 import SettingsManager from '../admin/Settings';
 
@@ -31,6 +32,7 @@ const Portal: React.FC = () => {
         <Route path="/products" element={<ProductsManager />} />
         <Route path="/content" element={<ContentManager />} />
         <Route path="/community" element={<CommunityManager />} />
+        <Route path="/orders" element={<OrdersManager />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/settings" element={<SettingsManager />} />
         <Route path="*" element={<Navigate to="/portal" replace />} />
