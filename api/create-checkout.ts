@@ -1,12 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return res.status(200).json({});
-  }
+export const config = {
+  api: {
+    bodyParser: true,
+  },
+};
 
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -18,6 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missing productId or userId' });
     }
 
+    // Initialize Supabase
     const supabaseUrl = process.env.VITE_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -27,6 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Get product
     const { data: product, error: productError } = await supabase
       .from('products')
       .select('*')
@@ -37,31 +40,51 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(404).json({ error: 'Product not found' });
     }
 
+    // Check inventory
     if (product.track_inventory && product.stock_quantity <= 0 && !product.allow_backorders) {
       return res.status(400).json({ error: 'Product out of stock' });
     }
 
+    // Get current Stripe mode
+    const { data: modeSetting } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'stripe_mode')
+      .single();
+
+    const stripeMode = modeSetting?.value || 'test';
+
+    // Get appropriate secret key based on mode
+    const secretKeyName = stripeMode === 'live' 
+      ? 'stripe_live_secret_key' 
+      : 'stripe_test_secret_key';
+
     const { data: stripeSetting } = await supabase
       .from('app_settings')
       .select('value')
-      .eq('key', 'stripe_secret_key')
+      .eq('key', secretKeyName)
       .single();
 
     if (!stripeSetting?.value) {
-      return res.status(500).json({ error: 'Stripe not configured' });
+      return res.status(500).json({ 
+        error: `Stripe ${stripeMode} mode not configured. Please add ${secretKeyName} in settings.` 
+      });
     }
 
     const stripeSecretKey = stripeSetting.value;
 
+    // Determine price (check for campaign discount)
     let price = product.price;
     if (product.campaign_data?.discount_price) {
       price = product.campaign_data.discount_price;
     }
 
+    // Get base URL from request
     const protocol = req.headers['x-forwarded-proto'] || 'https';
     const host = req.headers.host || 'builders-connect1.vercel.app';
     const baseUrl = `${protocol}://${host}`;
 
+    // Build Stripe checkout session parameters
     const sessionParams = new URLSearchParams();
     sessionParams.append('mode', 'payment');
     sessionParams.append('success_url', `${baseUrl}/order/success?session_id={CHECKOUT_SESSION_ID}`);
@@ -85,6 +108,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     sessionParams.append('metadata[product_id]', productId);
     sessionParams.append('metadata[user_id]', userId);
 
+    // Call Stripe API
     const stripeResponse = await fetch('https://api.stripe.com/v1/checkout/sessions', {
       method: 'POST',
       headers: {
@@ -102,9 +126,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const session = await stripeResponse.json();
 
+    console.log(`✅ Checkout session created in ${stripeMode} mode:`, session.id);
+
     return res.status(200).json({
       sessionId: session.id,
       url: session.url,
+      mode: stripeMode,
     });
 
   } catch (error: any) {
