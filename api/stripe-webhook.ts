@@ -1,8 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { buffer } from 'micro';
+import Stripe from 'stripe'; // Import the official library
 
-// Disable body parsing - we need raw body for Stripe signature verification
+// 1. Initialize Stripe (using the same key as your checkout)
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2023-10-16',
+});
+
 export const config = {
   api: {
     bodyParser: false,
@@ -14,23 +19,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const sig = req.headers['stripe-signature'] as string;
+  const buf = await buffer(req);
+
+  // Initialize Supabase
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
+
   try {
-    // Get raw body
-    const buf = await buffer(req);
-    const rawBody = buf.toString('utf8');
-    const sig = req.headers['stripe-signature'] as string;
-
-    // Initialize Supabase
-    const supabaseUrl = process.env.VITE_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Supabase not configured');
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Get webhook secret from database
+    // 2. Get webhook secret from database (just like you did)
     const { data: webhookSetting } = await supabase
       .from('app_settings')
       .select('value')
@@ -40,57 +38,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const webhookSecret = webhookSetting?.value;
 
     if (!webhookSecret) {
-      console.error('Webhook secret not configured');
-      return res.status(500).json({ error: 'Webhook secret not configured' });
+      throw new Error('Webhook secret not found in app_settings');
     }
 
-    // Verify Stripe signature
-    const crypto = require('crypto');
-    const timestamp = req.headers['stripe-signature']?.split(',')[0].split('=')[1];
-    const signature = req.headers['stripe-signature']?.split(',')[1].split('=')[1];
-    
-    const expectedSignature = crypto
-      .createHmac('sha256', webhookSecret)
-      .update(`${timestamp}.${rawBody}`)
-      .digest('hex');
-
-    if (signature !== expectedSignature) {
-      console.error('Invalid signature');
-      return res.status(400).json({ error: 'Invalid signature' });
+    // 3. SECURE VERIFICATION using the Stripe Library
+    // This replaces the manual 'require(crypto)' logic that was failing.
+    let event: Stripe.Event;
+    try {
+      event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
+    } catch (err: any) {
+      console.error(`Signature verification failed: ${err.message}`);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    // Parse event
-    const event = JSON.parse(rawBody);
-
-    console.log('Webhook event:', event.type);
-
-    // Handle different event types
+    // 4. Handle Event Types
     switch (event.type) {
       case 'checkout.session.completed': {
-        const session = event.data.object;
+        const session = event.data.object as Stripe.Checkout.Session;
 
-        // Extract data
-        const userId = session.client_reference_id;
-        const productId = session.metadata?.product_id;
-        const amount = session.amount_total / 100; // Convert from cents
-        const currency = session.currency.toUpperCase();
-        const customerEmail = session.customer_details?.email;
-        const customerName = session.customer_details?.name;
-        const paymentIntentId = session.payment_intent;
-
-        // Save order to database
         const { data: order, error: orderError } = await supabase
           .from('orders')
           .insert({
-            user_id: userId,
-            product_id: productId,
-            stripe_payment_intent_id: paymentIntentId,
+            user_id: session.client_reference_id || session.metadata?.user_id,
+            product_id: session.metadata?.product_id,
+            stripe_payment_intent_id: session.payment_intent as string,
             stripe_checkout_session_id: session.id,
-            amount,
-            currency,
+            amount: session.amount_total ? session.amount_total / 100 : 0,
+            currency: session.currency?.toUpperCase(),
             status: 'completed',
-            customer_email: customerEmail,
-            customer_name: customerName,
+            customer_email: session.customer_details?.email,
+            customer_name: session.customer_details?.name,
             paid_at: new Date().toISOString(),
             metadata: session.metadata,
           })
@@ -101,64 +78,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           console.error('Error saving order:', orderError);
           return res.status(500).json({ error: 'Failed to save order' });
         }
-
-        console.log('Order saved:', order.order_number);
-
-        // TODO: Send confirmation email
-        // TODO: Reduce inventory if applicable
-        // TODO: Grant access to digital products
-
         break;
       }
 
       case 'payment_intent.succeeded': {
-        const paymentIntent = event.data.object;
-        
-        // Update order status
-        const { error: updateError } = await supabase
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        await supabase
           .from('orders')
-          .update({ 
-            status: 'completed',
-            paid_at: new Date().toISOString()
-          })
+          .update({ status: 'completed', paid_at: new Date().toISOString() })
           .eq('stripe_payment_intent_id', paymentIntent.id);
-
-        if (updateError) {
-          console.error('Error updating order:', updateError);
-        }
-
         break;
       }
 
       case 'charge.refunded': {
-        const charge = event.data.object;
-        const refundAmount = charge.amount_refunded / 100;
-
-        // Update order with refund info
-        const { error: refundError } = await supabase
+        const charge = event.data.object as Stripe.Charge;
+        await supabase
           .from('orders')
           .update({
             refund_status: charge.refunded ? 'full' : 'partial',
-            refund_amount: refundAmount,
+            refund_amount: charge.amount_refunded / 100,
             refunded_at: new Date().toISOString(),
           })
-          .eq('stripe_payment_intent_id', charge.payment_intent);
-
-        if (refundError) {
-          console.error('Error updating refund:', refundError);
-        }
-
+          .eq('stripe_payment_intent_id', charge.payment_intent as string);
         break;
       }
-
-      default:
-        console.log(`Unhandled event type: ${event.type}`);
     }
 
     return res.status(200).json({ received: true });
 
   } catch (error: any) {
-    console.error('Webhook error:', error);
+    console.error('Webhook handler error:', error.message);
     return res.status(400).json({ error: error.message });
   }
 }
