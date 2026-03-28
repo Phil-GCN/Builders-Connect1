@@ -56,7 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
 
-        const { data: order, error: orderError } = await supabase
+        const { error: orderError } = await supabase
           .from('orders')
           .insert({
             user_id: session.client_reference_id || session.metadata?.user_id,
@@ -71,13 +71,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             paid_at: new Date().toISOString(),
             metadata: session.metadata,
           })
-          .select()
           .single();
 
         if (orderError) {
           console.error('Error saving order:', orderError);
           return res.status(500).json({ error: 'Failed to save order' });
         }
+        console.log('Order saved successfully');
         break;
       }
 
