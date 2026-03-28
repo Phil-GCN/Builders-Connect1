@@ -53,6 +53,13 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
       path: '/portal/products',
       requiredLevel: 3,
     },
+      {
+      id: 'orders',
+      label: 'Orders',
+      icon: ShoppingCart, // Import from lucide-react
+      path: '/portal/orders',
+      requiredLevel: 3,
+    },
     {
       id: 'content',
       label: 'Content Manager',
@@ -80,13 +87,6 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
       icon: Settings,
       path: '/portal/settings',
       requiredLevel: 4, // Super Admin only
-    },
-    {
-      id: 'orders',
-      label: 'Orders',
-      icon: ShoppingCart, // Import from lucide-react
-      path: '/portal/orders',
-      requiredLevel: 3,
     },
   ];
 
