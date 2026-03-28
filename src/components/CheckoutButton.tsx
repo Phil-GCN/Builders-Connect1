@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from './Button';
 import { ShoppingCart, Loader } from 'lucide-react';
-import { supabase } from '../lib/supabase';
-import { getStripe } from '../lib/stripe';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
@@ -36,17 +34,26 @@ export const CheckoutButton: React.FC<CheckoutButtonProps> = ({
     setLoading(true);
 
     try {
-      // Call Edge Function to create checkout session
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { 
-          productId,
-          userId: user.id 
+      // Call Vercel serverless function
+      const response = await fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          productId,
+          userId: user.id,
+        }),
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create checkout session');
+      }
 
-      if (!data?.url) {
+      const data = await response.json();
+
+      if (!data.url) {
         throw new Error('No checkout URL returned');
       }
 
