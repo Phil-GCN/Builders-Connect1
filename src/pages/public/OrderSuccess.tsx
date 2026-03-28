@@ -48,11 +48,15 @@ const OrderSuccess: React.FC = () => {
 
           {/* Session ID (for debugging) */}
           {sessionId && (
-            <p className="text-sm text-gray-500 mb-8">
-              Order ID: {sessionId.substring(0, 20)}...
-            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
+              <p className="text-sm font-medium text-blue-900 mb-1">Order Reference</p>
+              <p className="text-xs text-blue-700 font-mono">{sessionId}</p>
+              <p className="text-xs text-blue-600 mt-2">
+                Save this reference number for your records
+              </p>
+            </div>
           )}
-
+          
           {/* Order Details */}
           <div className="bg-gray-50 rounded-2xl p-8 mb-8 text-left">
             <h2 className="text-xl font-bold text-gray-900 mb-4">What's Next?</h2>
