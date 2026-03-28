@@ -7,7 +7,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({});
   }
 
-  // Only allow POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -19,7 +18,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missing productId or userId' });
     }
 
-    // Initialize Supabase
     const supabaseUrl = process.env.VITE_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -29,7 +27,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get product
     const { data: product, error: productError } = await supabase
       .from('products')
       .select('*')
@@ -40,12 +37,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    // Check inventory
     if (product.track_inventory && product.stock_quantity <= 0 && !product.allow_backorders) {
       return res.status(400).json({ error: 'Product out of stock' });
     }
 
-    // Get Stripe secret key from settings
     const { data: stripeSetting } = await supabase
       .from('app_settings')
       .select('value')
@@ -58,18 +53,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const stripeSecretKey = stripeSetting.value;
 
-    // Determine price
     let price = product.price;
     if (product.campaign_data?.discount_price) {
       price = product.campaign_data.discount_price;
     }
 
-    // Get base URL from request or environment
     const protocol = req.headers['x-forwarded-proto'] || 'https';
     const host = req.headers.host || 'builders-connect1.vercel.app';
     const baseUrl = `${protocol}://${host}`;
 
-    // Build Stripe checkout session parameters
     const sessionParams = new URLSearchParams();
     sessionParams.append('mode', 'payment');
     sessionParams.append('success_url', `${baseUrl}/order/success?session_id={CHECKOUT_SESSION_ID}`);
@@ -93,7 +85,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     sessionParams.append('metadata[product_id]', productId);
     sessionParams.append('metadata[user_id]', userId);
 
-    // Call Stripe API
     const stripeResponse = await fetch('https://api.stripe.com/v1/checkout/sessions', {
       method: 'POST',
       headers: {
@@ -121,10 +112,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: error.message || 'Internal server error' });
   }
 }
-
-// Configure CORS
-export const config = {
-  api: {
-    bodyParser: true,
-  },
-};
