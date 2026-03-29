@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/Button';
 import { 
-  Shield, Plus, Trash2, Loader, CheckCircle, X, AlertCircle, Calendar
+  Shield, Plus, Trash2, Loader, CheckCircle, X, Calendar
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -65,7 +65,7 @@ export const UserPermissionsEditor: React.FC<UserPermissionsEditorProps> = ({
       const { data: permsData, error: permsError } = await supabase
         .from('permissions')
         .select('*')
-        .lte('minimum_role_level', userRoleLevel + 1) // Can only grant permissions up to one level above user
+        .lte('minimum_role_level', userRoleLevel + 1)
         .order('category');
 
       if (permsError) throw permsError;
@@ -168,7 +168,7 @@ export const UserPermissionsEditor: React.FC<UserPermissionsEditorProps> = ({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b-2 border-gray-200 p-6 flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b-2 border-gray-200 p-6 flex items-center justify-between z-10">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Custom Permissions</h2>
             <p className="text-sm text-gray-600 mt-1">
@@ -231,7 +231,7 @@ export const UserPermissionsEditor: React.FC<UserPermissionsEditorProps> = ({
                       )}
                       <div className="flex items-center gap-4 text-xs text-gray-600">
                         <span>
-                          Granted by {up.granted_by_user?.full_name || up.granted_by_user?.email}
+                          Granted by {up.granted_by_user?.full_name || up.granted_by_user?.email || 'Unknown'}
                         </span>
                         <span>•</span>
                         <span>
