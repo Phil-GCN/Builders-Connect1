@@ -1,14 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { useAuth } from './useAuth';
-
-interface Permission {
-  key: string;
-  name: string;
-  category: string;
-  description: string;
-  minimum_role_level: number;
-}
 
 interface UserPermission {
   permission_key: string;
@@ -16,21 +7,21 @@ interface UserPermission {
   source: string;
 }
 
-export const usePermissions = () => {
-  const { user } = useAuth();
+// Pass userId as a parameter instead of calling useAuth()
+export const usePermissions = (userId: string | undefined) => {
   const [permissions, setPermissions] = useState<UserPermission[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user?.id) {
-      loadPermissions();
+  const loadPermissions = useCallback(async () => {
+    if (!userId) {
+      setPermissions([]);
+      setLoading(false);
+      return;
     }
-  }, [user?.id]);
 
-  const loadPermissions = async () => {
     try {
       const { data, error } = await supabase.rpc('get_user_permissions', {
-        user_uuid: user?.id
+        user_uuid: userId
       });
 
       if (error) throw error;
@@ -41,7 +32,11 @@ export const usePermissions = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadPermissions();
+  }, [loadPermissions]);
 
   const hasPermission = (permissionKey: string): boolean => {
     return permissions.some(p => p.permission_key === permissionKey);
