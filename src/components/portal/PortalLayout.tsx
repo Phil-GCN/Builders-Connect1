@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Added useEffect to imports
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, Package, FileText, ShoppingCart, BarChart3, Settings, 
-  LogOut, Menu, X, ChevronDown, MessageSquare, BookOpen 
+  LogOut, Menu, X, ChevronDown, MessageSquare, BookOpen, Bell 
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
-import { Bell } from 'lucide-react';
 
 interface MenuItem {
   id: string;
@@ -15,12 +14,6 @@ interface MenuItem {
   path: string;
   requiredLevel?: number;
   requiredPermission?: string;
-  
-  id: 'notifications',
-  label: 'Notifications',
-  icon: Bell,
-  path: '/portal/notifications',
-  requiredLevel: 1
 }
 
 interface PortalLayoutProps {
@@ -28,6 +21,7 @@ interface PortalLayoutProps {
 }
 
 export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
+  // 1. Hooks (Must be at the top)
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -35,11 +29,35 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Add useEffect to load unread count
+  // 2. Methods & Logic
+  const loadUnreadCount = async () => {
+    if (!user?.id) return;
+    
+    const { count } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('read', false);
+    
+    setUnreadCount(count || 0);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/');
+  };
+
+  const isActive = (path: string) => {
+    if (path === '/portal') {
+      return location.pathname === '/portal';
+    }
+    return location.pathname.startsWith(path);
+  };
+
+  // 3. Effects
   useEffect(() => {
     loadUnreadCount();
     
-    // Subscribe to real-time notifications
     const subscription = supabase
       .channel('notifications')
       .on('postgres_changes', {
@@ -56,112 +74,26 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
       subscription.unsubscribe();
     };
   }, [user?.id]);
-  
-  const loadUnreadCount = async () => {
-    if (!user?.id) return;
-    
-    const { count } = await supabase
-      .from('notifications')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('read', false);
-    
-    setUnreadCount(count || 0);
-  };
-  
-  // In the header, add notification bell next to the user menu:
-  <Link
-    to="/portal/notifications"
-    className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
-  >
-    <Bell className="w-6 h-6 text-gray-700" />
-    {unreadCount > 0 && (
-      <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
-        {unreadCount > 9 ? '9+' : unreadCount}
-      </span>
-    )}
-  </Link>
-  
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/');
-  };
 
+  // 4. Data Structures
   const menuItems: MenuItem[] = [
-    {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: LayoutDashboard,
-      path: '/portal',
-    },
-    {
-      id: 'users',
-      label: 'Users Manager',
-      icon: Users,
-      path: '/portal/users',
-      requiredLevel: 3, // Content Manager and above
-    },
-    {
-      id: 'products',
-      label: 'Products Manager',
-      icon: Package,
-      path: '/portal/products',
-      requiredLevel: 3,
-    },
-      {
-      id: 'orders',
-      label: 'Orders',
-      icon: ShoppingCart, // Import from lucide-react
-      path: '/portal/orders',
-      requiredLevel: 3,
-    },
-    {
-      id: 'content',
-      label: 'Content Manager',
-      icon: FileText,
-      path: '/portal/content',
-      requiredLevel: 3,
-    },
-    {
-      id: 'community',
-      label: 'Community',
-      icon: MessageSquare,
-      path: '/portal/community',
-      requiredLevel: 2, // Moderator and above
-    },
-    {
-      id: 'analytics',
-      label: 'Analytics',
-      icon: BarChart3,
-      path: '/portal/analytics',
-      requiredLevel: 3,
-    },
-    {
-      id: 'settings',
-      label: 'Settings',
-      icon: Settings,
-      path: '/portal/settings',
-      requiredLevel: 4, // Super Admin only
-    },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/portal' },
+    { id: 'users', label: 'Users Manager', icon: Users, path: '/portal/users', requiredLevel: 3 },
+    { id: 'products', label: 'Products Manager', icon: Package, path: '/portal/products', requiredLevel: 3 },
+    { id: 'orders', label: 'Orders', icon: ShoppingCart, path: '/portal/orders', requiredLevel: 3 },
+    { id: 'content', label: 'Content Manager', icon: FileText, path: '/portal/content', requiredLevel: 3 },
+    { id: 'community', label: 'Community', icon: MessageSquare, path: '/portal/community', requiredLevel: 2 },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/portal/analytics', requiredLevel: 3 },
+    { id: 'settings', label: 'Settings', icon: Settings, path: '/portal/settings', requiredLevel: 4 },
   ];
 
   const filteredMenuItems = menuItems.filter(item => {
-    if (item.requiredLevel && !hasMinimumRole(item.requiredLevel)) {
-      return false;
-    }
-    if (item.requiredPermission && !hasPermission(item.requiredPermission)) {
-      return false;
-    }
+    if (item.requiredLevel && !hasMinimumRole(item.requiredLevel)) return false;
+    if (item.requiredPermission && !hasPermission(item.requiredPermission)) return false;
     return true;
   });
 
-  const isActive = (path: string) => {
-    if (path === '/portal') {
-      return location.pathname === '/portal';
-    }
-    return location.pathname.startsWith(path);
-  };
-
+  // 5. Render
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile Header */}
@@ -178,12 +110,28 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
               BUILDERSCONNECT
             </Link>
           </div>
-          <button
-            onClick={handleLogout}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
+          
+          <div className="flex items-center gap-2">
+             {/* Notification Bell */}
+             <Link
+              to="/portal/notifications"
+              className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <Bell className="w-6 h-6 text-gray-700" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </Link>
+
+            <button
+              onClick={handleLogout}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -193,7 +141,6 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
           sidebarOpen ? 'lg:w-64' : 'lg:w-20'
         }`}
       >
-        {/* Sidebar Header */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
           {sidebarOpen && (
             <Link to="/" className="text-xl font-bold text-primary">
@@ -208,7 +155,6 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
           </button>
         </div>
 
-        {/* User Info */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
@@ -229,27 +175,21 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
           </div>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-4">
           <ul className="space-y-1">
             {filteredMenuItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
-              
               return (
                 <li key={item.id}>
                   <Link
                     to={item.path}
                     className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                      active
-                        ? 'bg-primary text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
+                      active ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-100'
                     }`}
                   >
                     <Icon className="w-5 h-5 flex-shrink-0" />
-                    {sidebarOpen && (
-                      <span className="font-medium">{item.label}</span>
-                    )}
+                    {sidebarOpen && <span className="font-medium">{item.label}</span>}
                   </Link>
                 </li>
               );
@@ -257,8 +197,23 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
           </ul>
         </nav>
 
-        {/* Sidebar Footer */}
         <div className="p-4 border-t border-gray-200">
+          {/* Desktop Notification Bell (placed in footer for when sidebar is open) */}
+          <Link
+            to="/portal/notifications"
+            className="flex items-center gap-3 px-3 py-2 mb-2 rounded-lg text-gray-700 hover:bg-gray-100 w-full transition-colors relative"
+          >
+            <div className="relative">
+              <Bell className="w-5 h-5 flex-shrink-0" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-2 -right-2 w-4 h-4 bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </div>
+            {sidebarOpen && <span className="font-medium">Notifications</span>}
+          </Link>
+
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 w-full transition-colors"
@@ -273,7 +228,6 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
       {mobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setMobileMenuOpen(false)}>
           <aside className="fixed inset-y-0 left-0 w-64 bg-white" onClick={(e) => e.stopPropagation()}>
-            {/* User Info */}
             <div className="p-4 border-b border-gray-200 mt-16">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
@@ -292,22 +246,18 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
               </div>
             </div>
 
-            {/* Mobile Navigation */}
             <nav className="p-4">
               <ul className="space-y-1">
                 {filteredMenuItems.map((item) => {
                   const Icon = item.icon;
                   const active = isActive(item.path);
-                  
                   return (
                     <li key={item.id}>
                       <Link
                         to={item.path}
                         onClick={() => setMobileMenuOpen(false)}
                         className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                          active
-                            ? 'bg-primary text-white'
-                            : 'text-gray-700 hover:bg-gray-100'
+                          active ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-100'
                         }`}
                       >
                         <Icon className="w-5 h-5" />
@@ -323,11 +273,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
       )}
 
       {/* Main Content */}
-      <main
-        className={`lg:pl-64 transition-all duration-300 ${
-          !sidebarOpen ? 'lg:pl-20' : ''
-        }`}
-      >
+      <main className={`lg:pl-64 transition-all duration-300 ${!sidebarOpen ? 'lg:pl-20' : ''}`}>
         <div className="pt-16 lg:pt-0">
           {children}
         </div>
