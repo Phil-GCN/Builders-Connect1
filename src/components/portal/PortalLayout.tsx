@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react'; // Added useEffect to imports
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, Package, FileText, ShoppingCart, BarChart3, Settings, 
-  LogOut, Menu, X, ChevronDown, MessageSquare, BookOpen, Bell 
+  LogOut, Menu, X, ChevronDown, MessageSquare, BookOpen, Bell, Shield 
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
@@ -21,7 +21,7 @@ interface PortalLayoutProps {
 }
 
 export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
-  // 1. Hooks (Must be at the top)
+  // 1. Hooks
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -84,6 +84,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
     { id: 'content', label: 'Content Manager', icon: FileText, path: '/portal/content', requiredLevel: 3 },
     { id: 'community', label: 'Community', icon: MessageSquare, path: '/portal/community', requiredLevel: 2 },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/portal/analytics', requiredLevel: 3 },
+    { id: 'permissions', label: 'Permissions', icon: Shield, path: '/portal/permissions', requiredLevel: 4 },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/portal/settings', requiredLevel: 4 },
   ];
 
@@ -112,7 +113,6 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
           </div>
           
           <div className="flex items-center gap-2">
-             {/* Notification Bell */}
              <Link
               to="/portal/notifications"
               className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -198,7 +198,6 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
         </nav>
 
         <div className="p-4 border-t border-gray-200">
-          {/* Desktop Notification Bell (placed in footer for when sidebar is open) */}
           <Link
             to="/portal/notifications"
             className="flex items-center gap-3 px-3 py-2 mb-2 rounded-lg text-gray-700 hover:bg-gray-100 w-full transition-colors relative"
