@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { PortalLayout } from '../../components/portal/PortalLayout';
 import { useAuth } from '../../hooks/useAuth';
+import Notifications from './Notifications';
 
 // Dashboard Pages
 import Dashboard from './Dashboard';
@@ -38,6 +39,7 @@ const Portal: React.FC = () => {
         <Route path="analytics" element={<Analytics />} />
         <Route path="settings" element={<Settings />} />
         <Route path="*" element={<Dashboard />} />
+        <Route path="notifications" element={<Notifications />} />
       </Routes>
     </PortalLayout>
   );
