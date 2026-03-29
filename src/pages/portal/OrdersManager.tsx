@@ -83,8 +83,13 @@ const OrdersManager: React.FC = () => {
       order.customer_email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.customer_name?.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-
+    let matchesStatus = true;
+    if (statusFilter === 'refunded') {
+      matchesStatus = order.refund_status !== 'none';
+    } else if (statusFilter !== 'all') {
+      matchesStatus = order.status === statusFilter;
+    }
+  
     return matchesSearch && matchesStatus;
   });
 
@@ -203,6 +208,7 @@ const OrdersManager: React.FC = () => {
             <option value="pending">Pending</option>
             <option value="processing">Processing</option>
             <option value="failed">Failed</option>
+            <option value="refunded">Refunded</option>
           </select>
         </div>
 
