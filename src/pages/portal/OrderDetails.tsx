@@ -286,13 +286,14 @@ const OrderDetails: React.FC = () => {
                   <p className="text-sm text-gray-600 mb-1">Payment Intent</p>
                   <p className="font-mono text-sm text-gray-900">{order.stripe_payment_intent_id}</p>
                   
-                    href={`https://dashboard.stripe.com/${order.stripe_payment_intent_id.includes('test') ? 'test/' : ''}payments/${order.stripe_payment_intent_id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-blue-600 hover:underline flex items-center gap-1 mt-1"
-                  >
-                    View in Stripe <ExternalLink className="w-3 h-3" />
-                  </a>
+                    <a 
+                      href="https://dashboard.stripe.com/..."
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="..."
+                    >
+                      View in Stripe <ExternalLink className="w-3 h-3" />
+                    </a>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Checkout Session</p>
