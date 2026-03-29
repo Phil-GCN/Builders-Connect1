@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
+import { Bell } from 'lucide-react';
 
 interface MenuItem {
   id: string;
@@ -23,10 +24,58 @@ interface PortalLayoutProps {
 export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const { user, hasMinimumRole, hasPermission } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Add useEffect to load unread count
+  useEffect(() => {
+    loadUnreadCount();
+    
+    // Subscribe to real-time notifications
+    const subscription = supabase
+      .channel('notifications')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${user?.id}`
+      }, () => {
+        loadUnreadCount();
+      })
+      .subscribe();
+  
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [user?.id]);
+  
+  const loadUnreadCount = async () => {
+    if (!user?.id) return;
+    
+    const { count } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('read', false);
+    
+    setUnreadCount(count || 0);
+  };
+  
+  // In the header, add notification bell next to the user menu:
+  <Link
+    to="/portal/notifications"
+    className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
+  >
+    <Bell className="w-6 h-6 text-gray-700" />
+    {unreadCount > 0 && (
+      <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+        {unreadCount > 9 ? '9+' : unreadCount}
+      </span>
+    )}
+  </Link>
+  
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/');
