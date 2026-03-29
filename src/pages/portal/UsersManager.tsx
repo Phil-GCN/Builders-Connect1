@@ -46,38 +46,50 @@ const UsersManager: React.FC = () => {
   }, []);
 
   const loadData = async () => {
-    setLoading(true);
-    try {
-      // Load users with roles
-      const { data: usersData, error: usersError } = await supabase
-        .from('users')
-        .select(`
-          id,
-          email,
-          full_name,
-          created_at,
-          role:roles(id, name, level, color)
-        `)
-        .order('created_at', { ascending: false });
+  setLoading(true);
+  try {
+    // Load users with roles
+    const { data: usersData, error: usersError } = await supabase
+      .from('users')
+      .select(`
+        id,
+        email,
+        full_name,
+        created_at,
+        role_id,
+        roles!inner(id, name, level, color)
+      `)
+      .order('created_at', { ascending: false });
 
-      if (usersError) throw usersError;
-      setUsers(usersData || []);
-
-      // Load all roles
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('roles')
-        .select('*')
-        .order('level', { ascending: false });
-
-      if (rolesError) throw rolesError;
-      setRoles(rolesData || []);
-
-    } catch (error) {
-      console.error('Error loading data:', error);
-    } finally {
-      setLoading(false);
+    if (usersError) {
+      console.error('Users fetch error:', usersError);
+      throw usersError;
     }
-  };
+
+    // Transform the data to match our interface
+    const transformedUsers = usersData?.map(user => ({
+      ...user,
+      role: user.roles
+    })) || [];
+
+    setUsers(transformedUsers);
+
+    // Load all roles
+    const { data: rolesData, error: rolesError } = await supabase
+      .from('roles')
+      .select('*')
+      .order('level', { ascending: false });
+
+    if (rolesError) throw rolesError;
+    setRoles(rolesData || []);
+
+  } catch (error) {
+    console.error('Error loading data:', error);
+    alert('Failed to load users. Please check browser console for details.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleOpenRoleModal = (user: User) => {
     setSelectedUser(user);
