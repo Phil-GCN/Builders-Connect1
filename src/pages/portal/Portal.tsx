@@ -15,7 +15,7 @@ import Analytics from './Analytics';
 import SettingsManager from '../admin/Settings';
 
 const Portal: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) {
     return (
@@ -28,15 +28,17 @@ const Portal: React.FC = () => {
   return (
     <PortalLayout>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/users" element={<UsersManager />} />
-        <Route path="/products" element={<ProductsManager />} />
-        <Route path="/content" element={<ContentManager />} />
-        <Route path="/community" element={<CommunityManager />} />
-        <Route path="/orders" element={<OrdersManager />} />
+        {/* Use relative paths (no leading slash) for nested routes */}
+        <Route index element={<Dashboard />} />
+        <Route path="users" element={<UsersManager />} />
+        <Route path="products" element={<ProductsManager />} />
+        <Route path="orders" element={<OrdersManager />} />
         <Route path="orders/:id" element={<OrderDetails />} />
-        <Route path="/analytics" element={<Analytics />} />
-        <Route path="/settings" element={<SettingsManager />} />
+        <Route path="content" element={<ContentManager />} />
+        <Route path="community" element={<CommunityManager />} />
+        <Route path="analytics" element={<Analytics />} />
+        <Route path="settings" element={<SettingsManager />} />
+        {/* Redirect to dashboard if no sub-route matches */}
         <Route path="*" element={<Navigate to="/portal" replace />} />
       </Routes>
     </PortalLayout>
