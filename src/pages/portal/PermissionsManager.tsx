@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/Button';
 import { 
-  Shield, Search, Plus, Trash2, Loader, CheckCircle,
-  XCircle, AlertCircle, Lock, Unlock, X
+  Shield, Search, Loader, CheckCircle, AlertCircle, Lock
 } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
 
 interface Permission {
   id: string;
@@ -20,7 +18,6 @@ interface RolePermission {
   id: string;
   role_id: string;
   permission_id: string;
-  permission: Permission;
 }
 
 interface Role {
@@ -32,7 +29,6 @@ interface Role {
 }
 
 const PermissionsManager: React.FC = () => {
-  const { user } = useAuth();
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [rolePermissions, setRolePermissions] = useState<RolePermission[]>([]);
@@ -89,12 +85,7 @@ const PermissionsManager: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('role_permissions')
-        .select(`
-          id,
-          role_id,
-          permission_id,
-          permission:permissions(*)
-        `)
+        .select('id, role_id, permission_id')
         .eq('role_id', selectedRole);
 
       if (error) throw error;
@@ -106,7 +97,7 @@ const PermissionsManager: React.FC = () => {
 
   const handleTogglePermission = async (permissionId: string) => {
     const hasPermission = rolePermissions.some(
-      rp => rp.permission_id === permissionId
+      rp => rp.permission_id === permissionId && rp.role_id === selectedRole
     );
 
     setSubmitting(true);
@@ -160,6 +151,10 @@ const PermissionsManager: React.FC = () => {
     return acc;
   }, {} as Record<string, Permission[]>);
 
+  const rolePermissionCount = (roleId: string) => {
+    return rolePermissions.filter(rp => rp.role_id === roleId).length;
+  };
+
   if (loading) {
     return (
       <div className="p-8">
@@ -187,29 +182,32 @@ const PermissionsManager: React.FC = () => {
             Select Role to Configure
           </label>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {roles.map(role => (
-              <button
-                key={role.id}
-                onClick={() => setSelectedRole(role.id)}
-                className={`p-4 rounded-xl border-2 transition-all text-left ${
-                  selectedRole === role.id
-                    ? 'border-primary bg-primary/5'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <Shield 
-                    className="w-5 h-5" 
-                    style={{ color: role.color }}
-                  />
-                  <span className="font-bold text-gray-900">{role.name}</span>
-                </div>
-                <p className="text-xs text-gray-600">{role.description}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Level {role.level} • {rolePermissions.filter(rp => rp.role_id === role.id).length} permissions
-                </p>
-              </button>
-            ))}
+            {roles.map(role => {
+              const permCount = rolePermissionCount(role.id);
+              return (
+                <button
+                  key={role.id}
+                  onClick={() => setSelectedRole(role.id)}
+                  className={`p-4 rounded-xl border-2 transition-all text-left ${
+                    selectedRole === role.id
+                      ? 'border-primary bg-primary/5'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Shield 
+                      className="w-5 h-5" 
+                      style={{ color: role.color }}
+                    />
+                    <span className="font-bold text-gray-900">{role.name}</span>
+                  </div>
+                  <p className="text-xs text-gray-600 mb-1">{role.description}</p>
+                  <p className="text-xs text-gray-500">
+                    Level {role.level} • {permCount} permissions
+                  </p>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -256,7 +254,7 @@ const PermissionsManager: React.FC = () => {
                 <div className="divide-y divide-gray-200">
                   {perms.map(permission => {
                     const hasPermission = rolePermissions.some(
-                      rp => rp.permission_id === permission.id
+                      rp => rp.permission_id === permission.id && rp.role_id === selectedRole
                     );
                     const isLocked = selectedRoleData && permission.minimum_role_level > selectedRoleData.level;
 
