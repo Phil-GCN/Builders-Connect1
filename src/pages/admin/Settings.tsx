@@ -443,7 +443,7 @@ const Settings: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Webhook Secret (Test Mode)
+                    Webhook Secret ({stripeMode === 'test' ? 'Test Mode' : 'Live Mode'})
                   </label>
                   <div className="flex gap-3">
                     <div className="flex-1 relative">
@@ -471,7 +471,7 @@ const Settings: React.FC = () => {
                     </Button>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Get this from Stripe Dashboard → Webhooks → Signing secret
+                    Get this from Stripe Dashboard → Webhooks ({stripeMode === 'test' ? 'Test' : 'Live'} mode) → Signing secret
                   </p>
                 </div>
 
