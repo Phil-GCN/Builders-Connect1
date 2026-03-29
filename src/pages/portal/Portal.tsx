@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { PortalLayout } from '../../components/portal/PortalLayout';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -15,7 +15,7 @@ import Analytics from './Analytics';
 import SettingsManager from '../admin/Settings';
 
 const Portal: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) {
     return (
@@ -25,22 +25,21 @@ const Portal: React.FC = () => {
     );
   }
 
-  function Portal() {
-    return (
-      <Routes>
-        <Route path="/" element={<PortalLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="users" element={<UsersManager />} />
-          <Route path="products" element={<ProductsManager />} />
-          <Route path="orders" element={<OrdersManager />} />
-          <Route path="orders/:id" element={<OrderDetails />} />  {/* ADD THIS */}
-          <Route path="content" element={<ContentManager />} />
-          <Route path="community" element={<Community />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
-      </Routes>
-    );
-  }
+  return (
+    <Routes>
+      <Route path="/" element={<PortalLayout />}>
+        <Route index element={<Dashboard />} />
+        <Route path="users" element={<UsersManager />} />
+        <Route path="products" element={<ProductsManager />} />
+        <Route path="orders" element={<OrdersManager />} />
+        <Route path="orders/:id" element={<OrderDetails />} />
+        <Route path="content" element={<ContentManager />} />
+        <Route path="community" element={<CommunityManager />} />
+        <Route path="analytics" element={<Analytics />} />
+        <Route path="settings" element={<SettingsManager />} />
+      </Route>
+    </Routes>
+  );
+};
 
 export default Portal;
