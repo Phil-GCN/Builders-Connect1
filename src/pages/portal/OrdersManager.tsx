@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/Button';
+import { Link } from 'react-router-dom';
 import { 
   Search, Eye, RefreshCw, Download, DollarSign, 
-  CheckCircle, XCircle, Clock, Loader, AlertCircle 
+  CheckCircle, XCircle, Clock, Loader, AlertCircle, ExternalLink 
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 interface Order {
   id: string;
@@ -27,6 +27,7 @@ const OrdersManager: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     loadOrders();
@@ -92,6 +93,19 @@ const OrdersManager: React.FC = () => {
   
     return matchesSearch && matchesStatus;
   });
+
+  const handleQuickRefund = (order: Order) => {
+    const confirmRefund = window.confirm(
+      `Issue refund for ${order.order_number}?\n\n` +
+      `Amount: $${order.amount.toFixed(2)}\n` +
+      `Customer: ${order.customer_email}\n\n` +
+      `This will open the full order details page where you can process the refund.`
+    );
+    
+    if (confirmRefund) {
+      window.location.href = `/portal/orders/${order.id}`;
+    }
+  };
 
   const stats = {
     total: orders.length,
@@ -274,14 +288,32 @@ const OrdersManager: React.FC = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setSelectedOrder(order)}
+                            className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Quick View"
+                          >
+                            <Eye className="w-5 h-5 text-blue-600" />
+                          </button>
+                          
                           <Link to={`/portal/orders/${order.id}`}>
                             <button
-                              className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="View Details"
+                              className="p-2 hover:bg-green-50 rounded-lg transition-colors"
+                              title="View Full Details"
                             >
-                              <Eye className="w-5 h-5 text-blue-600" />
+                              <ExternalLink className="w-5 h-5 text-green-600" />
                             </button>
                           </Link>
+                      
+                          {order.status === 'completed' && order.refund_status === 'none' && (
+                            <button
+                              onClick={() => handleQuickRefund(order)}
+                              className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Issue Refund"
+                            >
+                              <RefreshCw className="w-5 h-5 text-red-600" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
