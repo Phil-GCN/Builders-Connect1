@@ -7,12 +7,12 @@ import { useAuth } from '../../hooks/useAuth';
 import Dashboard from './Dashboard';
 import UsersManager from './UsersManager';
 import ProductsManager from './ProductsManager';
-import ContentManager from './ContentManager';
-import CommunityManager from './CommunityManager';
 import OrdersManager from './OrdersManager';
-import OrderDetails from './OrderDetails';
+import OrderDetails from './OrderDetails';  // ADD THIS
+import ContentManager from './ContentManager';
+import Community from './CommunityManager';
 import Analytics from './Analytics';
-import SettingsManager from '../admin/Settings';
+import Settings from '../admin/Settings';
 
 const Portal: React.FC = () => {
   const { loading } = useAuth();
