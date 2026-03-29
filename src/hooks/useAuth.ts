@@ -6,7 +6,9 @@ import { usePermissions } from './usePermissions';
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const permissionsHook = usePermissions();
+  
+  // Decouple by passing the ID directly
+  const permissionsHook = usePermissions(user?.id);
 
   useEffect(() => {
     checkSession();
@@ -102,6 +104,7 @@ export const useAuth = () => {
     loading, 
     hasRole,
     hasMinimumRole,
+    // Hybrid Permissions from usePermissions
     hasPermission: permissionsHook.hasPermission,
     hasAnyPermission: permissionsHook.hasAnyPermission,
     hasAllPermissions: permissionsHook.hasAllPermissions,
