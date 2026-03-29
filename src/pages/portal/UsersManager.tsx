@@ -6,6 +6,7 @@ import {
   RefreshCw, Loader, AlertCircle, CheckCircle, X
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import UserPermissionsEditor from './UserPermissionsEditor';
 
 interface User {
   id: string;
@@ -40,6 +41,8 @@ const UsersManager: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [roleChangeMessage, setRoleChangeMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showPermissionsEditor, setShowPermissionsEditor] = useState(false);
+  const [permissionsUser, setPermissionsUser] = useState<User | null>(null);
 
   useEffect(() => {
     loadData();
