@@ -26,19 +26,20 @@ const Portal: React.FC = () => {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<PortalLayout />}>
-        <Route index element={<Dashboard />} />
-        <Route path="users" element={<UsersManager />} />
-        <Route path="products" element={<ProductsManager />} />
+    <PortalLayout>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/users" element={<UsersManager />} />
+        <Route path="/products" element={<ProductsManager />} />
         <Route path="orders" element={<OrdersManager />} />
         <Route path="orders/:id" element={<OrderDetails />} />
-        <Route path="content" element={<ContentManager />} />
-        <Route path="community" element={<CommunityManager />} />
-        <Route path="analytics" element={<Analytics />} />
-        <Route path="settings" element={<SettingsManager />} />
-      </Route>
-    </Routes>
+        <Route path="/content" element={<ContentManager />} />
+        <Route path="/community" element={<CommunityManager />} />
+        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/settings" element={<SettingsManager />} />
+        <Route path="*" element={<Navigate to="/portal" replace />} />
+      </Routes>
+    </PortalLayout>
   );
 };
 
