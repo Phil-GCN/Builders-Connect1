@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { User } from '../types';
+import { usePermissions } from './usePermissions';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const permissionsHook = usePermissions();
 
   useEffect(() => {
     checkSession();
@@ -20,6 +22,16 @@ export const useAuth = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  return {
+    user,
+    loading,
+    hasMinimumRole,
+    hasPermission: permissionsHook.hasPermission,
+    hasAnyPermission: permissionsHook.hasAnyPermission,
+    hasAllPermissions: permissionsHook.hasAllPermissions,
+    permissions: permissionsHook.permissions,
+  };
 
   const checkSession = async () => {
     try {
