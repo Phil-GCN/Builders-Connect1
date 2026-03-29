@@ -15,6 +15,12 @@ interface MenuItem {
   path: string;
   requiredLevel?: number;
   requiredPermission?: string;
+  
+  id: 'notifications',
+  label: 'Notifications',
+  icon: Bell,
+  path: '/portal/notifications',
+  requiredLevel: 1
 }
 
 interface PortalLayoutProps {
