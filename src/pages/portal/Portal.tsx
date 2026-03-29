@@ -2,7 +2,6 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { PortalLayout } from '../../components/portal/PortalLayout';
 import { useAuth } from '../../hooks/useAuth';
-import Notifications from './Notifications';
 
 // Dashboard Pages
 import Dashboard from './Dashboard';
@@ -14,6 +13,8 @@ import ContentManager from './ContentManager';
 import Community from './Community';
 import Analytics from './Analytics';
 import Settings from '../admin/Settings';
+import Notifications from './Notifications';
+import PermissionsManager from './PermissionsManager';
 
 const Portal: React.FC = () => {
   const { loading } = useAuth();
@@ -40,6 +41,7 @@ const Portal: React.FC = () => {
         <Route path="settings" element={<Settings />} />
         <Route path="*" element={<Dashboard />} />
         <Route path="notifications" element={<Notifications />} />
+        <Route path="permissions" element={<PermissionsManager />} />
       </Routes>
     </PortalLayout>
   );
