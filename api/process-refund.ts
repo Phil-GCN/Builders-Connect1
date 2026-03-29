@@ -15,12 +15,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { orderId, reason, userId } = req.body;
 
-    if (!orderId || !reason) {
-      return res.status(400).json({ error: 'Missing orderId or reason' });
+    if (!orderId || !reason || !userId) {
+      return res.status(400).json({ error: 'Missing orderId, reason, or userId' });
     }
 
     // Initialize Supabase
-    const supabaseUrl = process.env.VITE_SUPABASE_URL;
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseServiceKey) {
@@ -28,6 +28,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // --- START ADMIN PROTECTION BLOCK ---
+    // Verify user exists and is an admin (level 3+)
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('role:roles(level)')
+      .eq('id', userId)
+      .single();
+
+    if (userError || !userData) {
+      return res.status(403).json({ error: 'Unauthorized: User profile not found' });
+    }
+
+    // Accessing the nested level via the 'role' relationship alias
+    const userRole = userData.role as any;
+    const userLevel = userRole?.level;
+
+    if (!userLevel || userLevel < 3) {
+      return res.status(403).json({ error: 'Unauthorized: Admin access level 3 required' });
+    }
+    // --- END ADMIN PROTECTION BLOCK ---
 
     // Get order details
     const { data: order, error: orderError } = await supabase
@@ -84,7 +105,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     refundParams.append('reason', 'requested_by_customer');
     if (reason) {
       refundParams.append('metadata[reason]', reason);
-      refundParams.append('metadata[refunded_by]', userId || 'admin');
+      refundParams.append('metadata[refunded_by_id]', userId);
     }
 
     console.log('Creating refund for payment intent:', order.stripe_payment_intent_id);
@@ -102,14 +123,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const errorText = await stripeResponse.text();
       console.error('Stripe refund error:', errorText);
       
-      // Parse Stripe error for better user message
       let errorMessage = 'Stripe refund failed';
       try {
         const errorData = JSON.parse(errorText);
         errorMessage = errorData.error?.message || errorMessage;
-      } catch (e) {
-        // Use default message
-      }
+      } catch (e) {}
       
       return res.status(400).json({ 
         error: errorMessage,
@@ -118,7 +136,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const refund = await stripeResponse.json();
-
     console.log('✅ Refund created in Stripe:', refund.id);
 
     // Update order in database
@@ -129,14 +146,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         refund_amount: order.amount,
         refund_reason: reason,
         refunded_at: new Date().toISOString(),
-        refunded_by: userId || null,
+        refunded_by: userId,
       })
       .eq('id', orderId);
 
     if (updateError) {
       console.error('Error updating order:', updateError);
-      // Refund was created in Stripe but database update failed
-      // This will be caught by webhook later
       return res.status(200).json({ 
         success: true,
         refundId: refund.id,
@@ -145,9 +160,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     console.log('✅ Order updated with refund info');
-
-    // TODO: Send refund confirmation email to customer
-    // TODO: Send notification to admin
 
     return res.status(200).json({
       success: true,
