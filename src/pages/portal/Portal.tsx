@@ -10,7 +10,7 @@ import ProductsManager from './ProductsManager';
 import OrdersManager from './OrdersManager';
 import OrderDetails from './OrderDetails';  // ADD THIS
 import ContentManager from './ContentManager';
-import Community from './CommunityManager';
+import Community from './Community';
 import Analytics from './Analytics';
 import Settings from '../admin/Settings';
 
