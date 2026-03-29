@@ -51,27 +51,62 @@ const OrderDetails: React.FC = () => {
   }, [id]);
 
   const loadOrder = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          product:products(name, slug, image_url),
-          user:users(email, full_name)
-        `)
-        .eq('id', id)
-        .single();
+  setLoading(true);
+  try {
+    // Get order first
+    const { data: orderData, error: orderError } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-      if (error) throw error;
-      setOrder(data);
-    } catch (error) {
-      console.error('Error loading order:', error);
-      alert('Failed to load order');
-    } finally {
-      setLoading(false);
+    if (orderError) {
+      console.error('Order fetch error:', orderError);
+      throw orderError;
     }
-  };
+
+    if (!orderData) {
+      throw new Error('Order not found');
+    }
+
+    // Get product details separately
+    let productData = null;
+    if (orderData.product_id) {
+      const { data: product } = await supabase
+        .from('products')
+        .select('name, slug, image_url')
+        .eq('id', orderData.product_id)
+        .single();
+      
+      productData = product;
+    }
+
+    // Get user details separately
+    let userData = null;
+    if (orderData.user_id) {
+      const { data: user } = await supabase
+        .from('users')
+        .select('email, full_name')
+        .eq('id', orderData.user_id)
+        .single();
+      
+      userData = user;
+    }
+
+    // Combine the data
+    setOrder({
+      ...orderData,
+      product: productData,
+      user: userData,
+    });
+
+  } catch (error: any) {
+    console.error('Error loading order:', error);
+    alert(`Failed to load order: ${error.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleRefund = async () => {
     if (!refundReason.trim()) {
