@@ -400,6 +400,118 @@ const Settings: React.FC = () => {
               </div>
             </div>
 
+            {/* Webhook Settings */}
+            <div className="bg-white rounded-xl border-2 border-gray-200 p-6 mb-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Webhook Configuration</h3>
+              
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <div className="flex gap-3">
+                  <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm text-yellow-800 mb-2">
+                      <strong>Important:</strong> You need to configure webhooks in both Test and Live modes separately.
+                    </p>
+                    <p className="text-xs text-yellow-700">
+                      Webhooks automatically update orders when payments complete or refunds are processed.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Webhook Endpoint URL
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value="https://builders-connect1.vercel.app/api/stripe-webhook"
+                      readOnly
+                      className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg bg-gray-50 font-mono text-sm"
+                    />
+                    <Button
+                      onClick={() => {
+                        navigator.clipboard.writeText('https://builders-connect1.vercel.app/api/stripe-webhook');
+                        alert('Webhook URL copied to clipboard!');
+                      }}
+                    >
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Webhook Secret (Test Mode)
+                  </label>
+                  <div className="flex gap-3">
+                    <div className="flex-1 relative">
+                      <input
+                        type={showSecrets['stripe_webhook_secret'] ? 'text' : 'password'}
+                        value={editedValues['stripe_webhook_secret'] || ''}
+                        onChange={(e) => handleValueChange('stripe_webhook_secret', e.target.value)}
+                        className="w-full px-4 py-3 pr-12 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none font-mono text-sm"
+                        placeholder="whsec_..."
+                      />
+                      <button
+                        type="button"
+                        onClick={() => toggleSecret('stripe_webhook_secret')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      >
+                        {showSecrets['stripe_webhook_secret'] ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                    <Button
+                      onClick={() => handleSave('stripe_webhook_secret')}
+                      disabled={editedValues['stripe_webhook_secret'] === settings.find(s => s.key === 'stripe_webhook_secret')?.value || saving}
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      Save
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Get this from Stripe Dashboard → Webhooks → Signing secret
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Events to Listen For
+                  </label>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <ul className="space-y-2 text-sm text-gray-700">
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <code className="bg-white px-2 py-1 rounded">checkout.session.completed</code>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <code className="bg-white px-2 py-1 rounded">payment_intent.succeeded</code>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <code className="bg-white px-2 py-1 rounded">charge.refunded</code>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800 mb-2">
+                    <strong>Setup Instructions:</strong>
+                  </p>
+                  <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
+                    <li>Go to Stripe Dashboard → Webhooks</li>
+                    <li>Click "Add endpoint"</li>
+                    <li>Paste the endpoint URL above</li>
+                    <li>Select the three events listed</li>
+                    <li>Copy the signing secret and save it here</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+            
             {/* Stripe Dashboard Link */}
             <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
               <h3 className="font-semibold text-blue-900 mb-2">Stripe Dashboard</h3>
