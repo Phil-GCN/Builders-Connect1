@@ -23,16 +23,6 @@ export const useAuth = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  return {
-    user,
-    loading,
-    hasMinimumRole,
-    hasPermission: permissionsHook.hasPermission,
-    hasAnyPermission: permissionsHook.hasAnyPermission,
-    hasAllPermissions: permissionsHook.hasAllPermissions,
-    permissions: permissionsHook.permissions,
-  };
-
   const checkSession = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -110,9 +100,12 @@ export const useAuth = () => {
   return { 
     user, 
     loading, 
-    hasPermission, 
-    hasRole, 
+    hasRole,
     hasMinimumRole,
+    hasPermission: permissionsHook.hasPermission,
+    hasAnyPermission: permissionsHook.hasAnyPermission,
+    hasAllPermissions: permissionsHook.hasAllPermissions,
+    permissions: permissionsHook.permissions,
     reload: () => user && loadUserProfile(user.id)
   };
 };
