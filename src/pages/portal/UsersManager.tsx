@@ -41,6 +41,8 @@ const UsersManager: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [roleChangeMessage, setRoleChangeMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  
+  // New State for Permissions Editor
   const [showPermissionsEditor, setShowPermissionsEditor] = useState(false);
   const [permissionsUser, setPermissionsUser] = useState<User | null>(null);
 
@@ -49,50 +51,50 @@ const UsersManager: React.FC = () => {
   }, []);
 
   const loadData = async () => {
-  setLoading(true);
-  try {
-    // Load users with roles
-    const { data: usersData, error: usersError } = await supabase
-      .from('users')
-      .select(`
-        id,
-        email,
-        full_name,
-        created_at,
-        role_id,
-        roles!inner(id, name, level, color)
-      `)
-      .order('created_at', { ascending: false });
+    setLoading(true);
+    try {
+      // Load users with roles
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select(`
+          id,
+          email,
+          full_name,
+          created_at,
+          role_id,
+          roles!inner(id, name, level, color)
+        `)
+        .order('created_at', { ascending: false });
 
-    if (usersError) {
-      console.error('Users fetch error:', usersError);
-      throw usersError;
+      if (usersError) {
+        console.error('Users fetch error:', usersError);
+        throw usersError;
+      }
+
+      // Transform the data to match our interface
+      const transformedUsers = usersData?.map(user => ({
+        ...user,
+        role: user.roles
+      })) || [];
+
+      setUsers(transformedUsers);
+
+      // Load all roles
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('roles')
+        .select('*')
+        .order('level', { ascending: false });
+
+      if (rolesError) throw rolesError;
+      setRoles(rolesData || []);
+
+    } catch (error) {
+      console.error('Error loading data:', error);
+      alert('Failed to load users. Please check browser console for details.');
+    } finally {
+      setLoading(false);
     }
-
-    // Transform the data to match our interface
-    const transformedUsers = usersData?.map(user => ({
-      ...user,
-      role: user.roles
-    })) || [];
-
-    setUsers(transformedUsers);
-
-    // Load all roles
-    const { data: rolesData, error: rolesError } = await supabase
-      .from('roles')
-      .select('*')
-      .order('level', { ascending: false });
-
-    if (rolesError) throw rolesError;
-    setRoles(rolesData || []);
-
-  } catch (error) {
-    console.error('Error loading data:', error);
-    alert('Failed to load users. Please check browser console for details.');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleOpenRoleModal = (user: User) => {
     setSelectedUser(user);
@@ -104,7 +106,6 @@ const UsersManager: React.FC = () => {
   const handleAssignRole = async () => {
     if (!selectedUser || !selectedRole) return;
 
-    // Check if role is different
     if (selectedRole === selectedUser.role.id) {
       alert('This user already has this role');
       return;
@@ -112,7 +113,6 @@ const UsersManager: React.FC = () => {
 
     setSubmitting(true);
     try {
-      // Create role change request
       const { error: requestError } = await supabase
         .from('role_change_requests')
         .insert({
@@ -311,14 +311,28 @@ const UsersManager: React.FC = () => {
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
                           {user.id !== currentUser?.id && (
-                            <Button
-                              onClick={() => handleOpenRoleModal(user)}
-                              size="sm"
-                              variant="outline"
-                            >
-                              <Shield className="w-4 h-4 mr-1" />
-                              Change Role
-                            </Button>
+                            <>
+                              <Button
+                                onClick={() => handleOpenRoleModal(user)}
+                                size="sm"
+                                variant="outline"
+                              >
+                                <Shield className="w-4 h-4 mr-1" />
+                                Change Role
+                              </Button>
+                              <Button
+                                onClick={() => {
+                                  setPermissionsUser(user);
+                                  setShowPermissionsEditor(true);
+                                }}
+                                size="sm"
+                                variant="outline"
+                                className="ml-2"
+                              >
+                                <Shield className="w-4 h-4 mr-1" />
+                                Permissions
+                              </Button>
+                            </>
                           )}
                           {user.id === currentUser?.id && (
                             <span className="text-xs text-gray-500 italic">You</span>
@@ -447,6 +461,20 @@ const UsersManager: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Permissions Editor Modal */}
+      {showPermissionsEditor && permissionsUser && (
+        <UserPermissionsEditor
+          userId={permissionsUser.id}
+          userName={permissionsUser.full_name}
+          userEmail={permissionsUser.email}
+          userRoleLevel={permissionsUser.role.level}
+          onClose={() => {
+            setShowPermissionsEditor(false);
+            setPermissionsUser(null);
+          }}
+        />
       )}
     </div>
   );
