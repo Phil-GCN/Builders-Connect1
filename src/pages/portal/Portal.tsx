@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { PortalLayout } from '../../components/portal/PortalLayout';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -8,7 +8,7 @@ import Dashboard from './Dashboard';
 import UsersManager from './UsersManager';
 import ProductsManager from './ProductsManager';
 import OrdersManager from './OrdersManager';
-import OrderDetails from './OrderDetails';  // ADD THIS
+import OrderDetails from './OrderDetails';
 import ContentManager from './ContentManager';
 import Community from './Community';
 import Analytics from './Analytics';
@@ -28,22 +28,15 @@ const Portal: React.FC = () => {
   return (
     <PortalLayout>
       <Routes>
-        {/* 'index' is the default view when at /portal */}
         <Route index element={<Dashboard />} />
-        
-        {/* Sub-routes under /portal */}
         <Route path="users" element={<UsersManager />} />
         <Route path="products" element={<ProductsManager />} />
         <Route path="orders" element={<OrdersManager />} />
         <Route path="orders/:id" element={<OrderDetails />} />
         <Route path="content" element={<ContentManager />} />
-        <Route path="community" element={<CommunityManager />} />
+        <Route path="community" element={<Community />} />
         <Route path="analytics" element={<Analytics />} />
-        <Route path="settings" element={<SettingsManager />} />
-
-        {/* IMPORTANT: If no sub-route matches, just show the Dashboard 
-          instead of a hard redirect which causes blank screens.
-        */}
+        <Route path="settings" element={<Settings />} />
         <Route path="*" element={<Dashboard />} />
       </Routes>
     </PortalLayout>
