@@ -139,7 +139,7 @@ const Settings: React.FC = () => {
   const filteredSettings = settings.filter(s => 
     s.category === activeTab && 
     !['stripe_mode', 'stripe_test_publishable_key', 'stripe_test_secret_key', 
-      'stripe_live_publishable_key', 'stripe_live_secret_key'].includes(s.key)
+      'stripe_live_publishable_key', 'stripe_live_secret_key', 'stripe_webhook_secret'].includes(s.key)
   );
 
   if (loading) {
