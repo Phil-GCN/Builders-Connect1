@@ -49,7 +49,7 @@ export const UserPermissionsEditor: React.FC<UserPermissionsEditorProps> = ({
   const [userPermissions, setUserPermissions] = useState<UserPermission[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedPermission, setSelectedPermission] = useState('');
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [reason, setReason] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -96,33 +96,37 @@ export const UserPermissionsEditor: React.FC<UserPermissionsEditorProps> = ({
     }
   };
 
-  const handleGrantPermission = async () => {
-    if (!selectedPermission) return;
-
+  const handleGrantPermissions = async () => {
+    if (selectedPermissions.length === 0) return;
+  
     setSubmitting(true);
     try {
+      // Insert all selected permissions
+      const permissionsToInsert = selectedPermissions.map(permId => ({
+        user_id: userId,
+        permission_id: permId,
+        granted_by: currentUser?.id,
+        grant_type: 'add',
+        reason: reason || null,
+        expires_at: expiresAt || null,
+      }));
+  
       const { error } = await supabase
         .from('user_permissions')
-        .insert({
-          user_id: userId,
-          permission_id: selectedPermission,
-          granted_by: currentUser?.id,
-          grant_type: 'add',
-          reason: reason || null,
-          expires_at: expiresAt || null,
-        });
-
+        .insert(permissionsToInsert);
+  
       if (error) throw error;
-
-      alert('Permission granted successfully!');
+  
+      const count = selectedPermissions.length;
+      alert(`✅ ${count} permission${count > 1 ? 's' : ''} granted successfully!`);
       setShowAddModal(false);
-      setSelectedPermission('');
+      setSelectedPermissions([]);
       setReason('');
       setExpiresAt('');
       await loadData();
-
+  
     } catch (error: any) {
-      console.error('Error granting permission:', error);
+      console.error('Error granting permissions:', error);
       alert(`Failed: ${error.message}`);
     } finally {
       setSubmitting(false);
@@ -186,7 +190,10 @@ export const UserPermissionsEditor: React.FC<UserPermissionsEditorProps> = ({
         <div className="p-6">
           {/* Add Permission Button */}
           <div className="mb-6">
-            <Button onClick={() => setShowAddModal(true)}>
+            <Button onClick={() => {
+              setShowAddModal(true);
+              setSelectedPermissions([]); // Reset selections
+            }}>
               <Plus className="w-5 h-5 mr-2" />
               Grant Custom Permission
             </Button>
@@ -264,29 +271,64 @@ export const UserPermissionsEditor: React.FC<UserPermissionsEditorProps> = ({
         {/* Add Permission Modal */}
         {showAddModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl max-w-md w-full p-6">
+            <div className="bg-white rounded-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
               <h3 className="text-xl font-bold text-gray-900 mb-4">
-                Grant Custom Permission
+                Grant Custom Permissions
               </h3>
-
+        
+              {/* Multiple Permission Selection */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Permission *
+                  Select Permissions *
                 </label>
-                <select
-                  value={selectedPermission}
-                  onChange={(e) => setSelectedPermission(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                >
-                  <option value="">Select a permission...</option>
-                  {availableToGrant.map(perm => (
-                    <option key={perm.id} value={perm.id}>
-                      {perm.name} ({perm.category})
-                    </option>
-                  ))}
-                </select>
+                <div className="border-2 border-gray-300 rounded-lg p-4 max-h-64 overflow-y-auto">
+                  {availableToGrant.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center py-4">
+                      No permissions available to grant
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {availableToGrant.map(perm => (
+                        <label
+                          key={perm.id}
+                          className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedPermissions.includes(perm.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedPermissions([...selectedPermissions, perm.id]);
+                              } else {
+                                setSelectedPermissions(selectedPermissions.filter(id => id !== perm.id));
+                              }
+                            }}
+                            className="mt-1 w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium text-gray-900">{perm.name}</span>
+                              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                                {perm.category}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600">{perm.description}</p>
+                            <code className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded mt-1 inline-block">
+                              {perm.key}
+                            </code>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {selectedPermissions.length > 0 && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    {selectedPermissions.length} permission{selectedPermissions.length > 1 ? 's' : ''} selected
+                  </p>
+                )}
               </div>
-
+        
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Reason (Optional)
@@ -296,10 +338,10 @@ export const UserPermissionsEditor: React.FC<UserPermissionsEditorProps> = ({
                   onChange={(e) => setReason(e.target.value)}
                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                   rows={3}
-                  placeholder="Why is this permission being granted?"
+                  placeholder="Why are these permissions being granted?"
                 />
               </div>
-
+        
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Expires On (Optional)
@@ -311,12 +353,12 @@ export const UserPermissionsEditor: React.FC<UserPermissionsEditorProps> = ({
                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                 />
               </div>
-
+        
               <div className="flex gap-3">
                 <Button
                   onClick={() => {
                     setShowAddModal(false);
-                    setSelectedPermission('');
+                    setSelectedPermissions([]);
                     setReason('');
                     setExpiresAt('');
                   }}
@@ -326,8 +368,8 @@ export const UserPermissionsEditor: React.FC<UserPermissionsEditorProps> = ({
                   Cancel
                 </Button>
                 <Button
-                  onClick={handleGrantPermission}
-                  disabled={!selectedPermission || submitting}
+                  onClick={handleGrantPermissions}
+                  disabled={selectedPermissions.length === 0 || submitting}
                   className="flex-1"
                 >
                   {submitting ? (
@@ -338,7 +380,7 @@ export const UserPermissionsEditor: React.FC<UserPermissionsEditorProps> = ({
                   ) : (
                     <>
                       <CheckCircle className="w-5 h-5 mr-2" />
-                      Grant Permission
+                      Grant {selectedPermissions.length > 0 ? `${selectedPermissions.length} ` : ''}Permission{selectedPermissions.length !== 1 ? 's' : ''}
                     </>
                   )}
                 </Button>
