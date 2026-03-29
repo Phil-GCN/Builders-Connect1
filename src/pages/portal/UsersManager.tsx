@@ -41,8 +41,6 @@ const UsersManager: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [roleChangeMessage, setRoleChangeMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  
-  // New State for Permissions Editor
   const [showPermissionsEditor, setShowPermissionsEditor] = useState(false);
   const [permissionsUser, setPermissionsUser] = useState<User | null>(null);
 
@@ -106,6 +104,7 @@ const UsersManager: React.FC = () => {
   const handleAssignRole = async () => {
     if (!selectedUser || !selectedRole) return;
 
+    // Check if role is different
     if (selectedRole === selectedUser.role.id) {
       alert('This user already has this role');
       return;
@@ -113,6 +112,7 @@ const UsersManager: React.FC = () => {
 
     setSubmitting(true);
     try {
+      // Create role change request
       const { error: requestError } = await supabase
         .from('role_change_requests')
         .insert({
@@ -310,7 +310,7 @@ const UsersManager: React.FC = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
-                          {user.id !== currentUser?.id && (
+                          {user.id !== currentUser?.id ? (
                             <>
                               <Button
                                 onClick={() => handleOpenRoleModal(user)}
@@ -327,14 +327,12 @@ const UsersManager: React.FC = () => {
                                 }}
                                 size="sm"
                                 variant="outline"
-                                className="ml-2"
                               >
                                 <Shield className="w-4 h-4 mr-1" />
                                 Permissions
                               </Button>
                             </>
-                          )}
-                          {user.id === currentUser?.id && (
+                          ) : (
                             <span className="text-xs text-gray-500 italic">You</span>
                           )}
                         </div>
@@ -467,7 +465,7 @@ const UsersManager: React.FC = () => {
       {showPermissionsEditor && permissionsUser && (
         <UserPermissionsEditor
           userId={permissionsUser.id}
-          userName={permissionsUser.full_name}
+          userName={permissionsUser.full_name || 'No name'}
           userEmail={permissionsUser.email}
           userRoleLevel={permissionsUser.role.level}
           onClose={() => {
