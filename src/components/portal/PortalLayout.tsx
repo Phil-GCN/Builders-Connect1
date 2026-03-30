@@ -71,24 +71,28 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
 
   // 3. Effects
   useEffect(() => {
+  if (user?.id) {
     loadUnreadCount();
     
+    // Subscribe to real-time notifications changes
     const subscription = supabase
-      .channel('notifications')
+      .channel('notifications_changes')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'notifications',
-        filter: `user_id=eq.${user?.id}`
-      }, () => {
-        loadUnreadCount();
+        filter: `user_id=eq.${user.id}`
+      }, (payload) => {
+        console.log('Notification change detected:', payload);
+        loadUnreadCount(); // Reload count on any change
       })
       .subscribe();
-  
+
     return () => {
       subscription.unsubscribe();
     };
-  }, [user?.id]);
+  }
+}, [user?.id]);
 
   // 4. Data Structures
   const menuItems: MenuItem[] = [
