@@ -6,6 +6,7 @@ import {
   Link as LinkIcon, Users, TrendingUp, AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { CreateInvitationModal } from '../../components/portal/CreateInvitationModal';
 
 interface Invitation {
   id: string;
