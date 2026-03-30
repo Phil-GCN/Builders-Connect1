@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, Package, FileText, ShoppingCart, BarChart3, Settings, 
-  LogOut, Menu, X, ChevronDown, MessageSquare, BookOpen, Bell, Shield 
+  LogOut, Menu, X, ChevronDown, MessageSquare, BookOpen, Bell, Shield, UserPlus 
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
