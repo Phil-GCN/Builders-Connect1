@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, Package, FileText, ShoppingCart, BarChart3, Settings, 
-  LogOut, Menu, X, ChevronDown, MessageSquare, BookOpen, Bell, Shield, UserPlus 
+  LogOut, Menu, X, MessageSquare, Bell, Shield 
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
@@ -45,15 +45,10 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
         .eq('user_id', user.id)
         .eq('read', false);
       
-      if (error) {
-        console.error('Error loading unread count:', error);
-        setUnreadCount(0);
-        return;
-      }
-      
+      if (error) throw error;
       setUnreadCount(count || 0);
     } catch (error) {
-      console.error('Error in loadUnreadCount:', error);
+      console.error('Error loading unread count:', error);
       setUnreadCount(0);
     }
   };
@@ -93,18 +88,70 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
     }
   }, [user?.id]);
 
-  // 4. Data Structures
+  // 4. Data Structures (Clean Version)
   const menuItems: MenuItem[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/portal' },
-    { id: 'users', label: 'Users Manager', icon: Users, path: '/portal/users', requiredLevel: 3 },
-    { id: 'products', label: 'Products Manager', icon: Package, path: '/portal/products', requiredLevel: 3 },
-    { id: 'orders', label: 'Orders', icon: ShoppingCart, path: '/portal/orders', requiredLevel: 3 },
-    { id: 'content', label: 'Content Manager', icon: FileText, path: '/portal/content', requiredLevel: 3 },
-    { id: 'community', label: 'Community', icon: MessageSquare, path: '/portal/community', requiredLevel: 2 },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/portal/analytics', requiredLevel: 3 },
-    { id: 'settings', label: 'Settings', icon: Settings, path: '/portal/settings', requiredLevel: 4 },
-    // REMOVED: Communications from main menu (now only in footer)
-    // REMOVED: Permissions (now inside Settings)
+    { 
+      id: 'dashboard', 
+      label: 'Dashboard', 
+      icon: LayoutDashboard, 
+      path: '/portal' 
+    },
+    { 
+      id: 'users', 
+      label: 'Users Manager', 
+      icon: Users, 
+      path: '/portal/users', 
+      requiredLevel: 3 
+    },
+    { 
+      id: 'products', 
+      label: 'Products Manager', 
+      icon: Package, 
+      path: '/portal/products', 
+      requiredLevel: 3 
+    },
+    { 
+      id: 'orders', 
+      label: 'Orders', 
+      icon: ShoppingCart, 
+      path: '/portal/orders', 
+      requiredLevel: 3 
+    },
+    { 
+      id: 'content', 
+      label: 'Content Manager', 
+      icon: FileText, 
+      path: '/portal/content', 
+      requiredLevel: 3 
+    },
+    { 
+      id: 'community', 
+      label: 'Community', 
+      icon: MessageSquare, 
+      path: '/portal/community', 
+      requiredLevel: 2 
+    },
+    { 
+      id: 'analytics', 
+      label: 'Analytics', 
+      icon: BarChart3, 
+      path: '/portal/analytics', 
+      requiredLevel: 3 
+    },
+    { 
+      id: 'communications', 
+      label: userLevel >= 3 ? 'Communications' : 'Support', 
+      icon: Bell, 
+      path: '/portal/communications', 
+      requiredLevel: 1 
+    },
+    { 
+      id: 'settings', 
+      label: 'Settings', 
+      icon: Settings, 
+      path: '/portal/settings', 
+      requiredLevel: 4 
+    },
   ];
 
   const filteredMenuItems = menuItems.filter(item => {
@@ -143,11 +190,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
                 </span>
               )}
             </Link>
-
-            <button
-              onClick={handleLogout}
-              className="p-2 hover:bg-gray-100 rounded-lg"
-            >
+            <button onClick={handleLogout} className="p-2 hover:bg-gray-100 rounded-lg">
               <LogOut className="w-5 h-5" />
             </button>
           </div>
@@ -174,7 +217,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
           </button>
         </div>
 
-        {/* Profile Section */}
+        {/* Clickable Profile Section */}
         <div className="p-4 border-b border-gray-200">
           <button
             onClick={() => navigate('/portal/profile')}
@@ -188,9 +231,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
                 <p className="text-sm font-semibold text-gray-900 truncate">
                   {user?.full_name || user?.username || 'User'}
                 </p>
-                <p className="text-xs text-gray-500 truncate">
-                  {user?.email}
-                </p>
+                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
               </div>
             )}
           </button>
@@ -219,21 +260,6 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
         </nav>
 
         <div className="p-4 border-t border-gray-200">
-          <Link
-            to="/portal/communications"
-            className="flex items-center gap-3 px-3 py-2 mb-2 rounded-lg text-gray-700 hover:bg-gray-100 w-full transition-colors relative"
-          >
-            <div className="relative">
-              <Bell className="w-5 h-5 flex-shrink-0" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-2 -right-2 w-4 h-4 bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </div>
-            {sidebarOpen && <span className="font-medium">Communications</span>}
-          </Link>
-
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 w-full transition-colors"
@@ -250,10 +276,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
           <aside className="fixed inset-y-0 left-0 w-64 bg-white" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 border-b border-gray-200 mt-16">
               <button
-                onClick={() => {
-                  navigate('/portal/profile');
-                  setMobileMenuOpen(false);
-                }}
+                onClick={() => { navigate('/portal/profile'); setMobileMenuOpen(false); }}
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors w-full text-left"
               >
                 <div className="w-10 h-10 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
@@ -267,7 +290,6 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
                 </div>
               </button>
             </div>
-
             <nav className="p-4">
               <ul className="space-y-1">
                 {filteredMenuItems.map((item) => {
