@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/Button';
 import { 
   MessageSquare, Send, Plus, Search, X, Loader, 
-  Users, Clock, Check, CheckCheck, MoreVertical
+  MoreVertical
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { NewConversationModal } from '../../components/portal/NewConversationModal';
@@ -80,22 +80,16 @@ const Messages: React.FC = () => {
     }
   }, [selectedConversation]);
 
-  // FIXED: Optimized to prevent 406 Not Acceptable errors
   const loadConversations = async () => {
     if (!user?.id) return;
-
     setLoading(true);
     try {
-      console.log('Loading conversations for user:', user.id);
-
-      // 1. Get user's participation IDs
       const { data: participantData, error: participantError } = await supabase
         .from('conversation_participants')
         .select('conversation_id, last_read_at')
         .eq('user_id', user.id);
 
       if (participantError) throw participantError;
-
       if (!participantData || participantData.length === 0) {
         setConversations([]);
         setLoading(false);
@@ -103,8 +97,6 @@ const Messages: React.FC = () => {
       }
 
       const conversationIds = participantData.map(p => p.conversation_id);
-
-      // 2. Get base conversation objects
       const { data: convData, error: convError } = await supabase
         .from('conversations')
         .select('*')
@@ -113,17 +105,14 @@ const Messages: React.FC = () => {
 
       if (convError) throw convError;
 
-      // 3. Enrich conversations sequentially to avoid complex join errors
       const enrichedConversations = await Promise.all(
         (convData || []).map(async (conv) => {
-          // Get OTHER participants
           const { data: pData } = await supabase
             .from('conversation_participants')
             .select('user_id')
             .eq('conversation_id', conv.id)
             .neq('user_id', user.id);
 
-          // Fetch details for each participant
           const participants = pData && pData.length > 0
             ? await Promise.all(
                 pData.map(async (p) => {
@@ -142,7 +131,6 @@ const Messages: React.FC = () => {
               )
             : [];
 
-          // Get last message info
           const { data: lastMsgData } = await supabase
             .from('messages')
             .select('content, created_at, sender_id')
@@ -165,7 +153,6 @@ const Messages: React.FC = () => {
             };
           }
 
-          // Unread count
           const pInfo = participantData.find(p => p.conversation_id === conv.id);
           const { count } = await supabase
             .from('messages')
@@ -181,7 +168,6 @@ const Messages: React.FC = () => {
           };
         })
       );
-
       setConversations(enrichedConversations);
     } catch (error) {
       console.error('Error loading conversations:', error);
@@ -190,12 +176,9 @@ const Messages: React.FC = () => {
     }
   };
 
-  // FIXED: Simplified query pattern to solve "Not Acceptable" error
   const loadMessages = async () => {
     if (!selectedConversation || !user?.id) return;
-
     try {
-      // Fetch messages first
       const { data: messagesData, error: messagesError } = await supabase
         .from('messages')
         .select('*')
@@ -205,7 +188,6 @@ const Messages: React.FC = () => {
 
       if (messagesError) throw messagesError;
 
-      // Enrich messages with sender details manually
       if (messagesData && messagesData.length > 0) {
         const enrichedMessages = await Promise.all(
           messagesData.map(async (msg) => {
@@ -214,7 +196,6 @@ const Messages: React.FC = () => {
               .select('full_name, username, email')
               .eq('id', msg.sender_id)
               .single();
-
             return {
               ...msg,
               sender: sData || { full_name: 'Unknown', username: '', email: '' }
@@ -239,7 +220,6 @@ const Messages: React.FC = () => {
         .update({ last_read_at: new Date().toISOString() })
         .eq('conversation_id', selectedConversation)
         .eq('user_id', user.id);
-
       setConversations(prev =>
         prev.map(conv =>
           conv.id === selectedConversation ? { ...conv, unread_count: 0 } : conv
@@ -252,7 +232,6 @@ const Messages: React.FC = () => {
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation || !user?.id) return;
-
     setSending(true);
     try {
       const { error } = await supabase
@@ -262,9 +241,7 @@ const Messages: React.FC = () => {
           sender_id: user.id,
           content: newMessage.trim()
         });
-
       if (error) throw error;
-
       setNewMessage('');
       await loadMessages();
       await loadConversations();
@@ -293,7 +270,6 @@ const Messages: React.FC = () => {
 
   return (
     <div className="h-[calc(100vh-4rem)] flex">
-      {/* Sidebar */}
       <div className="w-80 border-r border-gray-200 bg-white flex flex-col">
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
@@ -334,7 +310,7 @@ const Messages: React.FC = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-gray-900 text-sm truncate">
-                        {conv.subject || conv.participants.map(p => p.full_name || p.username).join(', ')}
+                        {conv.participants.map(p => p.full_name || p.username).join(', ') || 'Conversation'}
                       </p>
                       <p className="text-xs text-gray-500">{conv.type === 'support' ? 'Support' : 'Direct'}</p>
                     </div>
@@ -356,22 +332,33 @@ const Messages: React.FC = () => {
         </div>
       </div>
 
-      {/* Main View */}
       <div className="flex-1 flex flex-col bg-gray-50">
         {selectedConversation && selectedConvData ? (
           <>
             <div className="bg-white border-b border-gray-200 p-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    const participantId = selectedConvData.participants[0]?.user_id;
+                    if (participantId) {
+                      window.location.href = `/portal/users?view=${participantId}`;
+                    }
+                  }}
+                  className="flex items-center gap-3 hover:bg-gray-50 rounded-lg p-2 transition-colors group"
+                >
                   <div className="w-10 h-10 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
                     {selectedConvData.participants[0]?.full_name?.charAt(0) || 'U'}
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900">
-                      {selectedConvData.subject || selectedConvData.participants.map(p => p.full_name || p.username).join(', ')}
+                    <h3 className="font-bold text-gray-900 text-left group-hover:text-primary transition-colors">
+                      {selectedConvData.participants.map(p => p.full_name || p.username).join(', ')}
                     </h3>
+                    <p className="text-xs text-gray-500">Click to view profile</p>
                   </div>
-                </div>
+                </button>
+                <button className="p-2 hover:bg-gray-100 rounded-lg">
+                  <MoreVertical className="w-5 h-5 text-gray-600" />
+                </button>
               </div>
             </div>
 
