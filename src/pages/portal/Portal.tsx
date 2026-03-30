@@ -16,6 +16,7 @@ import Settings from '../admin/Settings';
 import Notifications from './Notifications';
 import PermissionsManager from './PermissionsManager';
 import Messages from './Messages';
+import InvitationsManager from './InvitationsManager';
 
 const Portal: React.FC = () => {
   const { loading } = useAuth();
@@ -44,6 +45,7 @@ const Portal: React.FC = () => {
         <Route path="notifications" element={<Notifications />} />
         <Route path="permissions" element={<PermissionsManager />} />
         <Route path="messages" element={<Messages />} />
+        <Route path="invitations" element={<InvitationsManager />} />
       </Routes>
     </PortalLayout>
   );
