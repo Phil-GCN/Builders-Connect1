@@ -29,6 +29,8 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const userLevel = user?.role_level || 1;
+
   // 2. Methods & Logic
   const loadUnreadCount = async () => {
     if (!user?.id) {
@@ -49,7 +51,6 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
         return;
       }
       
-      console.log('Unread notifications count for user', user.id, ':', count);
       setUnreadCount(count || 0);
     } catch (error) {
       console.error('Error in loadUnreadCount:', error);
@@ -71,28 +72,26 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
 
   // 3. Effects
   useEffect(() => {
-  if (user?.id) {
-    loadUnreadCount();
-    
-    // Subscribe to real-time notifications changes
-    const subscription = supabase
-      .channel('notifications_changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'notifications',
-        filter: `user_id=eq.${user.id}`
-      }, (payload) => {
-        console.log('Notification change detected:', payload);
-        loadUnreadCount(); // Reload count on any change
-      })
-      .subscribe();
+    if (user?.id) {
+      loadUnreadCount();
+      
+      const subscription = supabase
+        .channel('notifications_changes')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        }, () => {
+          loadUnreadCount();
+        })
+        .subscribe();
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }
-}, [user?.id]);
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, [user?.id]);
 
   // 4. Data Structures
   const menuItems: MenuItem[] = [
@@ -103,6 +102,14 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
     { id: 'content', label: 'Content Manager', icon: FileText, path: '/portal/content', requiredLevel: 3 },
     { id: 'community', label: 'Community', icon: MessageSquare, path: '/portal/community', requiredLevel: 2 },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/portal/analytics', requiredLevel: 3 },
+    // Updated Notifications to Communications/Support
+    { 
+      id: 'communications', 
+      label: userLevel >= 3 ? 'Communications' : 'Support', 
+      icon: Bell, 
+      path: '/portal/communications', 
+      requiredLevel: 1 
+    },
     { id: 'permissions', label: 'Permissions', icon: Shield, path: '/portal/permissions', requiredLevel: 4 },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/portal/settings', requiredLevel: 4 },
     { id: 'messages', label: 'Messages', icon: MessageSquare, path: '/portal/messages', requiredLevel: 1 },
@@ -134,7 +141,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
           
           <div className="flex items-center gap-2">
              <Link
-              to="/portal/notifications"
+              to="/portal/communications"
               className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <Bell className="w-6 h-6 text-gray-700" />
@@ -175,24 +182,26 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
           </button>
         </div>
 
+        {/* Clickable Profile Section */}
         <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-primary font-bold">
-                {user?.email?.charAt(0).toUpperCase()}
-              </span>
+          <button
+            onClick={() => navigate('/portal/profile')}
+            className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors w-full text-left overflow-hidden"
+          >
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
+              {user?.full_name?.charAt(0) || user?.username?.charAt(0) || 'U'}
             </div>
             {sidebarOpen && (
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900 truncate">
-                  {user?.full_name || user?.email}
+                  {user?.full_name || user?.username || 'User'}
                 </p>
                 <p className="text-xs text-gray-500 truncate">
-                  {user?.role_display_name}
+                  {user?.email}
                 </p>
               </div>
             )}
-          </div>
+          </button>
         </div>
 
         <nav className="flex-1 overflow-y-auto p-4">
@@ -219,7 +228,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
 
         <div className="p-4 border-t border-gray-200">
           <Link
-            to="/portal/notifications"
+            to="/portal/communications"
             className="flex items-center gap-3 px-3 py-2 mb-2 rounded-lg text-gray-700 hover:bg-gray-100 w-full transition-colors relative"
           >
             <div className="relative">
@@ -230,7 +239,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
                 </span>
               )}
             </div>
-            {sidebarOpen && <span className="font-medium">Notifications</span>}
+            {sidebarOpen && <span className="font-medium">Communications</span>}
           </Link>
 
           <button
@@ -248,21 +257,23 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
         <div className="lg:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setMobileMenuOpen(false)}>
           <aside className="fixed inset-y-0 left-0 w-64 bg-white" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 border-b border-gray-200 mt-16">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                  <span className="text-primary font-bold">
-                    {user?.email?.charAt(0).toUpperCase()}
-                  </span>
+              <button
+                onClick={() => {
+                  navigate('/portal/profile');
+                  setMobileMenuOpen(false);
+                }}
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors w-full text-left"
+              >
+                <div className="w-10 h-10 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                  {user?.full_name?.charAt(0) || user?.username?.charAt(0) || 'U'}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-gray-900 truncate">
-                    {user?.full_name || user?.email}
+                    {user?.full_name || user?.username || 'User'}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {user?.role_display_name}
-                  </p>
+                  <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                 </div>
-              </div>
+              </button>
             </div>
 
             <nav className="p-4">
