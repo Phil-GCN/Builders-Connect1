@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/Button';
 import { 
-  Save, Eye, EyeOff, ExternalLink, AlertTriangle, 
-  CheckCircle, Settings as SettingsIcon, Webhook, Shield 
+  Save, Eye, EyeOff, AlertTriangle, CheckCircle, 
+  Settings as SettingsIcon, Webhook, Shield, CreditCard,
+  Key, Globe, Mail, DollarSign
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import PermissionsManager from '../portal/PermissionsManager';
@@ -18,23 +19,32 @@ interface Setting {
   description: string;
 }
 
-type Tab = 'payment' | 'general' | 'webhooks' | 'permissions';
+type MainTab = 'payment' | 'general' | 'webhooks' | 'permissions';
+type GeneralSubTab = 'site' | 'email' | 'api' | 'other';
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
   const [settings, setSettings] = useState<Setting[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>('payment');
+  const [activeTab, setActiveTab] = useState<MainTab>('payment');
+  const [generalSubTab, setGeneralSubTab] = useState<GeneralSubTab>('site');
   const [showSecrets, setShowSecrets] = useState<{ [key: string]: boolean }>({});
   const [editedValues, setEditedValues] = useState<{ [key: string]: string }>({});
   const [stripeMode, setStripeMode] = useState<'test' | 'live'>('test');
 
-  const categories = [
-    { id: 'payment', label: 'Payment (Stripe)', icon: SettingsIcon },
-    { id: 'general', label: 'General Content', icon: SettingsIcon },
+  const mainTabs = [
+    { id: 'payment', label: 'Payment (Stripe)', icon: CreditCard },
+    { id: 'general', label: 'General Settings', icon: SettingsIcon },
     { id: 'webhooks', label: 'Webhooks', icon: Webhook },
     { id: 'permissions', label: 'Permissions', icon: Shield },
+  ];
+
+  const generalSubTabs = [
+    { id: 'site', label: 'Site Settings', icon: Globe },
+    { id: 'email', label: 'Email Settings', icon: Mail },
+    { id: 'api', label: 'API Keys', icon: Key },
+    { id: 'other', label: 'Other', icon: SettingsIcon },
   ];
 
   useEffect(() => {
@@ -89,10 +99,10 @@ const Settings: React.FC = () => {
         setStripeMode(editedValues[key] as 'test' | 'live');
       }
 
-      alert('Setting saved successfully!');
+      alert('✅ Setting saved successfully!');
     } catch (error) {
       console.error('Error saving setting:', error);
-      alert('Failed to save setting');
+      alert('❌ Failed to save setting');
     } finally {
       setSaving(false);
     }
@@ -126,7 +136,7 @@ const Settings: React.FC = () => {
       alert(`✅ Successfully switched to ${newMode.toUpperCase()} mode`);
     } catch (error) {
       console.error('Error toggling mode:', error);
-      alert('Failed to switch mode');
+      alert('❌ Failed to switch mode');
     } finally {
       setSaving(false);
     }
@@ -140,11 +150,80 @@ const Settings: React.FC = () => {
     setShowSecrets(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // Filter settings for the General tab (anything not Stripe-specific)
-  const generalSettings = settings.filter(s => 
-    !['stripe_mode', 'stripe_test_publishable_key', 'stripe_test_secret_key', 
-      'stripe_live_publishable_key', 'stripe_live_secret_key', 'stripe_webhook_secret'].includes(s.key)
-  );
+  // Categorize settings
+  const stripeKeys = ['stripe_mode', 'stripe_test_publishable_key', 'stripe_test_secret_key', 
+                      'stripe_live_publishable_key', 'stripe_live_secret_key', 'stripe_webhook_secret'];
+  
+  const categorizeGeneralSettings = () => {
+    const nonStripeSettings = settings.filter(s => !stripeKeys.includes(s.key));
+    
+    return {
+      site: nonStripeSettings.filter(s => 
+        s.key.includes('site_') || s.key.includes('app_') || s.key.includes('name') || 
+        s.key.includes('url') || s.key.includes('logo') || s.key.includes('tagline')
+      ),
+      email: nonStripeSettings.filter(s => 
+        s.key.includes('email_') || s.key.includes('smtp_') || s.key.includes('mail_')
+      ),
+      api: nonStripeSettings.filter(s => 
+        s.key.includes('api_') || s.key.includes('_key') && !stripeKeys.includes(s.key)
+      ),
+      other: nonStripeSettings.filter(s => {
+        const inSite = s.key.includes('site_') || s.key.includes('app_') || s.key.includes('name') || 
+                       s.key.includes('url') || s.key.includes('logo') || s.key.includes('tagline');
+        const inEmail = s.key.includes('email_') || s.key.includes('smtp_') || s.key.includes('mail_');
+        const inApi = s.key.includes('api_') || s.key.includes('_key');
+        return !inSite && !inEmail && !inApi;
+      })
+    };
+  };
+
+  const renderSettingCard = (setting: Setting) => {
+    const hasChanged = editedValues[setting.key] !== setting.value;
+    const isSecret = setting.is_encrypted || setting.key.includes('secret') || setting.key.includes('key');
+
+    return (
+      <div key={setting.id} className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="mb-4">
+          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+            {setting.key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+            {isSecret && <Key className="w-4 h-4 text-gray-400" />}
+          </h3>
+          {setting.description && (
+            <p className="text-sm text-gray-600 mt-1">{setting.description}</p>
+          )}
+        </div>
+        <div className="flex gap-3">
+          <div className="flex-1 relative">
+            <input
+              type={isSecret && !showSecrets[setting.key] ? 'password' : 'text'}
+              value={editedValues[setting.key] || ''}
+              onChange={(e) => handleValueChange(setting.key, e.target.value)}
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              placeholder={`Enter ${setting.key.replace(/_/g, ' ')}`}
+            />
+            {isSecret && (
+              <button
+                type="button"
+                onClick={() => toggleSecret(setting.key)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                {showSecrets[setting.key] ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            )}
+          </div>
+          <Button 
+            onClick={() => handleSave(setting.key)} 
+            disabled={!hasChanged || saving}
+            variant={hasChanged ? 'default' : 'outline'}
+          >
+            <Save className="w-4 h-4 mr-2" />
+            {hasChanged ? 'Save' : 'Saved'}
+          </Button>
+        </div>
+      </div>
+    );
+  };
 
   if (loading) {
     return (
@@ -154,43 +233,48 @@ const Settings: React.FC = () => {
     );
   }
 
+  const categorizedSettings = categorizeGeneralSettings();
+
   return (
     <div className="p-8">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Settings Manager</h1>
-          <p className="text-gray-600 mt-2">Manage system integrations, API keys, and access controls</p>
+          <p className="text-gray-600 mt-2">Configure system integrations, API keys, and access controls</p>
         </div>
 
-        {/* Tabs Navigation */}
-        <div className="flex gap-2 mb-8 border-b border-gray-200">
-          {categories.map(cat => {
-            const Icon = cat.icon;
+        {/* Main Tabs Navigation */}
+        <div className="flex gap-2 mb-6 border-b border-gray-200">
+          {mainTabs.map(tab => {
+            const Icon = tab.icon;
             return (
               <button
-                key={cat.id}
-                onClick={() => setActiveTab(cat.id as Tab)}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as MainTab)}
                 className={`px-6 py-3 font-medium border-b-2 transition-colors flex items-center gap-2 ${
-                  activeTab === cat.id
+                  activeTab === tab.id
                     ? 'border-primary text-primary'
                     : 'border-transparent text-gray-600 hover:text-gray-900'
                 }`}
               >
                 <Icon className="w-5 h-5" />
-                {cat.label}
+                {tab.label}
               </button>
             );
           })}
         </div>
 
-        {/* Payment Tab Content */}
+        {/* Payment Tab */}
         {activeTab === 'payment' && (
           <div className="space-y-6">
+            {/* Mode Toggle */}
             <div className="bg-white rounded-xl border-2 border-gray-200 p-8">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 mb-2">Payment Environment</h2>
-                  <p className="text-gray-600">Active environment: <span className="font-bold uppercase">{stripeMode}</span></p>
+                  <p className="text-gray-600">
+                    Active mode: <span className={`font-bold uppercase ${stripeMode === 'live' ? 'text-red-600' : 'text-blue-600'}`}>{stripeMode}</span>
+                  </p>
                 </div>
                 <button
                   onClick={handleToggleMode}
@@ -199,24 +283,36 @@ const Settings: React.FC = () => {
                     stripeMode === 'live' ? 'bg-red-600' : 'bg-blue-600'
                   } ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  <span className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${stripeMode === 'live' ? 'translate-x-9' : 'translate-x-1'}`} />
+                  <span className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                    stripeMode === 'live' ? 'translate-x-9' : 'translate-x-1'
+                  }`} />
                 </button>
               </div>
 
-              <div className={`p-4 rounded-xl border-2 ${stripeMode === 'test' ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'}`}>
+              <div className={`p-4 rounded-xl border-2 ${
+                stripeMode === 'test' ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'
+              }`}>
                 <div className="flex items-start gap-3">
-                  {stripeMode === 'test' ? <CheckCircle className="w-6 h-6 text-blue-600" /> : <AlertTriangle className="w-6 h-6 text-red-600" />}
+                  {stripeMode === 'test' ? (
+                    <CheckCircle className="w-6 h-6 text-blue-600 flex-shrink-0" />
+                  ) : (
+                    <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0" />
+                  )}
                   <div>
                     <h3 className={`font-bold ${stripeMode === 'test' ? 'text-blue-900' : 'text-red-900'}`}>
                       {stripeMode === 'test' ? '🧪 Test Mode Active' : '🔴 LIVE MODE ACTIVE'}
                     </h3>
-                    <p className="text-sm mt-1">{stripeMode === 'test' ? 'Safe for testing with fake cards.' : 'Real money is being charged.'}</p>
+                    <p className={`text-sm mt-1 ${stripeMode === 'test' ? 'text-blue-700' : 'text-red-700'}`}>
+                      {stripeMode === 'test' 
+                        ? 'Safe for testing. Use test cards. No real money involved.' 
+                        : 'Real money is being processed. Customer payments are live.'}
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Keys Sections */}
+            {/* API Keys Sections */}
             {[
               { label: 'Test Mode Keys', mode: 'test', prefix: 'stripe_test' },
               { label: 'Live Mode Keys', mode: 'live', prefix: 'stripe_live' }
@@ -224,33 +320,18 @@ const Settings: React.FC = () => {
               <div key={section.mode} className="bg-white rounded-xl border-2 border-gray-200 p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                   {section.label}
-                  {stripeMode === section.mode && <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Active</span>}
+                  {stripeMode === section.mode && (
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                      Currently Active
+                    </span>
+                  )}
                 </h3>
                 <div className="space-y-4">
                   {['publishable_key', 'secret_key'].map(keyType => {
                     const fullKey = `${section.prefix}_${keyType}`;
-                    const isSecret = keyType === 'secret_key';
-                    return (
-                      <div key={fullKey}>
-                        <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">{keyType.replace('_', ' ')}</label>
-                        <div className="flex gap-3">
-                          <div className="flex-1 relative">
-                            <input
-                              type={showSecrets[fullKey] ? 'text' : 'password'}
-                              value={editedValues[fullKey] || ''}
-                              onChange={(e) => handleValueChange(fullKey, e.target.value)}
-                              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg outline-none font-mono text-sm"
-                            />
-                            <button type="button" onClick={() => toggleSecret(fullKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
-                              {showSecrets[fullKey] ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                            </button>
-                          </div>
-                          <Button onClick={() => handleSave(fullKey)} disabled={editedValues[fullKey] === settings.find(s => s.key === fullKey)?.value || saving}>
-                            <Save className="w-4 h-4 mr-2" /> Save
-                          </Button>
-                        </div>
-                      </div>
-                    );
+                    const setting = settings.find(s => s.key === fullKey);
+                    if (!setting) return null;
+                    return renderSettingCard(setting);
                   })}
                 </div>
               </div>
@@ -258,69 +339,105 @@ const Settings: React.FC = () => {
           </div>
         )}
 
-        {/* Webhooks Tab Content */}
+        {/* General Tab with Subtabs */}
+        {activeTab === 'general' && (
+          <div>
+            {/* Subtabs */}
+            <div className="flex gap-2 mb-6 bg-gray-100 rounded-lg p-1">
+              {generalSubTabs.map(tab => {
+                const Icon = tab.icon;
+                const count = categorizedSettings[tab.id as GeneralSubTab].length;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setGeneralSubTab(tab.id as GeneralSubTab)}
+                    className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center gap-2 ${
+                      generalSubTab === tab.id
+                        ? 'bg-white text-primary shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {tab.label}
+                    {count > 0 && (
+                      <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Subtab Content */}
+            <div className="space-y-4">
+              {categorizedSettings[generalSubTab].length === 0 ? (
+                <div className="bg-white rounded-xl border-2 border-gray-200 p-12 text-center">
+                  <SettingsIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    No {generalSubTabs.find(t => t.id === generalSubTab)?.label} Yet
+                  </h3>
+                  <p className="text-gray-600">
+                    Settings in this category will appear here when added.
+                  </p>
+                </div>
+              ) : (
+                categorizedSettings[generalSubTab].map(setting => renderSettingCard(setting))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Webhooks Tab */}
         {activeTab === 'webhooks' && (
           <div className="bg-white rounded-xl border-2 border-gray-200 p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Webhook Configuration</h3>
+            
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 flex gap-3">
-              <AlertTriangle className="w-5 h-5 text-yellow-600" />
-              <p className="text-sm text-yellow-800">Configure your Stripe dashboard to send events to the endpoint below.</p>
-            </div>
-            <div className="space-y-4">
-              <label className="block text-sm font-medium text-gray-700">Webhook Endpoint URL</label>
-              <div className="flex gap-2">
-                <input readOnly value="https://builders-connect1.vercel.app/api/stripe-webhook" className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg bg-gray-50 font-mono text-sm" />
-                <Button onClick={() => { navigator.clipboard.writeText('https://builders-connect1.vercel.app/api/stripe-webhook'); alert('Copied!'); }}>Copy</Button>
+              <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm text-yellow-800 font-medium mb-1">Configuration Required</p>
+                <p className="text-sm text-yellow-700">
+                  Add this endpoint to your Stripe dashboard to receive webhook events.
+                </p>
               </div>
-              <label className="block text-sm font-medium text-gray-700 mt-4">Signing Secret ({stripeMode.toUpperCase()})</label>
-              <div className="flex gap-3">
-                <div className="flex-1 relative">
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Webhook Endpoint URL
+                </label>
+                <div className="flex gap-2">
                   <input
-                    type={showSecrets['stripe_webhook_secret'] ? 'text' : 'password'}
-                    value={editedValues['stripe_webhook_secret'] || ''}
-                    onChange={(e) => handleValueChange('stripe_webhook_secret', e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg font-mono text-sm"
+                    readOnly
+                    value="https://builders-connect1.vercel.app/api/stripe-webhook"
+                    className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg bg-gray-50 font-mono text-sm"
                   />
-                  <button type="button" onClick={() => toggleSecret('stripe_webhook_secret')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
-                    {showSecrets['stripe_webhook_secret'] ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
+                  <Button
+                    onClick={() => {
+                      navigator.clipboard.writeText('https://builders-connect1.vercel.app/api/stripe-webhook');
+                      alert('✅ Copied to clipboard!');
+                    }}
+                  >
+                    Copy
+                  </Button>
                 </div>
-                <Button onClick={() => handleSave('stripe_webhook_secret')} disabled={saving}>Save</Button>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Webhook Signing Secret ({stripeMode.toUpperCase()} Mode)
+                </label>
+                {renderSettingCard(settings.find(s => s.key === 'stripe_webhook_secret')!)}
               </div>
             </div>
           </div>
         )}
 
-        {/* General Content Tab */}
-        {activeTab === 'general' && (
-          <div className="space-y-6">
-            {generalSettings.map(setting => {
-              const hasChanged = editedValues[setting.key] !== setting.value;
-              return (
-                <div key={setting.id} className="bg-white rounded-xl border-2 border-gray-200 p-6">
-                  <div className="mb-4">
-                    <h3 className="font-semibold text-gray-900">{setting.key}</h3>
-                    <p className="text-sm text-gray-600">{setting.description}</p>
-                  </div>
-                  <div className="flex gap-3">
-                    <input
-                      value={editedValues[setting.key] || ''}
-                      onChange={(e) => handleValueChange(setting.key, e.target.value)}
-                      className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg"
-                    />
-                    <Button onClick={() => handleSave(setting.key)} disabled={!hasChanged || saving}>
-                      <Save className="w-4 h-4 mr-2" /> {hasChanged ? 'Save' : 'Saved'}
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Permissions Tab Content */}
+        {/* Permissions Tab */}
         {activeTab === 'permissions' && (
-          <div className="bg-white rounded-xl border-2 border-gray-200 overflow-hidden">
+          <div>
             <PermissionsManager />
           </div>
         )}
