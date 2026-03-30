@@ -102,16 +102,9 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
     { id: 'content', label: 'Content Manager', icon: FileText, path: '/portal/content', requiredLevel: 3 },
     { id: 'community', label: 'Community', icon: MessageSquare, path: '/portal/community', requiredLevel: 2 },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/portal/analytics', requiredLevel: 3 },
-    { 
-      id: 'communications', 
-      label: userLevel >= 3 ? 'Communications' : 'Support', 
-      icon: Bell, 
-      path: '/portal/communications', 
-      requiredLevel: 1 
-    },
-    { id: 'permissions', label: 'Permissions', icon: Shield, path: '/portal/permissions', requiredLevel: 4 },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/portal/settings', requiredLevel: 4 },
-    // REMOVED: messages item (now accessible via Communications)
+    // REMOVED: Communications from main menu (now only in footer)
+    // REMOVED: Permissions (now inside Settings)
   ];
 
   const filteredMenuItems = menuItems.filter(item => {
