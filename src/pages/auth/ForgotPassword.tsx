@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/Button';
 import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { sendEmail, emailTemplates } from '../../services/emailService';
 
 const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -14,14 +15,35 @@ const ForgotPassword: React.FC = () => {
     
     setLoading(true);
     try {
+      // 1. Trigger Supabase Auth password reset
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) throw error;
 
+      // 2. Attempt to get user's name from database for the email template
+      const { data: userData } = await supabase
+        .from('users')
+        .select('full_name, username')
+        .eq('email', email)
+        .single();
+
+      const userName = userData?.full_name || userData?.username || email.split('@')[0];
+
+      // 3. Send custom branded password reset email via our service
+      const resetLink = `${window.location.origin}/reset-password`;
+      const emailTemplate = emailTemplates.passwordReset(userName, resetLink);
+      
+      await sendEmail({
+        to: email,
+        subject: emailTemplate.subject,
+        html: emailTemplate.html
+      });
+
       setSent(true);
     } catch (error: any) {
+      console.error('Password reset error:', error);
       alert(error.message || 'Failed to send reset email');
     } finally {
       setLoading(false);
@@ -67,7 +89,7 @@ const ForgotPassword: React.FC = () => {
               Email Address
             </label>
             <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              < Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="email"
                 value={email}
