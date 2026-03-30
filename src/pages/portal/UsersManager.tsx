@@ -13,7 +13,7 @@ interface User {
   id: string;
   email: string;
   full_name: string;
-  username?: string; // Added support for username
+  username?: string;
   created_at: string;
   role: {
     id: string;
@@ -56,7 +56,6 @@ const UsersManager: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Load users with roles and include username in query
       const { data: usersData, error: usersError } = await supabase
         .from('users')
         .select(`
@@ -70,12 +69,8 @@ const UsersManager: React.FC = () => {
         `)
         .order('created_at', { ascending: false });
 
-      if (usersError) {
-        console.error('Users fetch error:', usersError);
-        throw usersError;
-      }
+      if (usersError) throw usersError;
 
-      // Transform the data to match our interface
       const transformedUsers = usersData?.map(user => ({
         ...user,
         role: user.roles
@@ -83,7 +78,6 @@ const UsersManager: React.FC = () => {
 
       setUsers(transformedUsers);
 
-      // Load all roles
       const { data: rolesData, error: rolesError } = await supabase
         .from('roles')
         .select('*')
@@ -107,11 +101,46 @@ const UsersManager: React.FC = () => {
     setShowRoleModal(true);
   };
 
+  // Updated handleAssignRole with enhanced validation
   const handleAssignRole = async () => {
     if (!selectedUser || !selectedRole) return;
 
+    // Check if role is different
     if (selectedRole === selectedUser.role.id) {
-      alert('This user already has this role');
+      alert('⚠️ This user already has this role');
+      return;
+    }
+
+    // Get current user and selected role info
+    const currentUserLevel = currentUser?.role_level || 0;
+    const targetUserLevel = selectedUser.role.level;
+    const selectedRoleData = roles.find(r => r.id === selectedRole);
+    const newRoleLevel = selectedRoleData?.level || 0;
+
+    // Friendly validation messages
+    if (currentUserLevel < 3) {
+      alert('⚠️ Access Denied\n\nOnly Managers and above can assign roles.');
+      setShowRoleModal(false);
+      return;
+    }
+
+    // Check if trying to modify admin+ user
+    if (targetUserLevel >= 4 && currentUserLevel < 5) {
+      alert('⚠️ Permission Denied\n\nYou cannot change the role of Admin users.\n\nOnly Super Admins can modify Admin roles.');
+      setShowRoleModal(false);
+      return;
+    }
+
+    // Check if trying to assign role beyond permissions
+    if (currentUserLevel === 3 && newRoleLevel > 2) {
+      alert('⚠️ Permission Denied\n\nAs a Manager, you can only assign:\n• Member\n• Moderator\n\nContact an Admin to assign Manager+ roles.');
+      setShowRoleModal(false);
+      return;
+    }
+
+    if (currentUserLevel === 4 && newRoleLevel > 3) {
+      alert('⚠️ Permission Denied\n\nAs an Admin, you can only assign roles up to Manager level.\n\nContact a Super Admin to assign higher roles.');
+      setShowRoleModal(false);
       return;
     }
 
@@ -128,16 +157,23 @@ const UsersManager: React.FC = () => {
           status: 'pending',
         });
 
-      if (requestError) throw requestError;
+      if (requestError) {
+        if (requestError.message.includes('valid_role_assignment')) {
+          alert('⚠️ Permission Denied\n\nYou don\'t have permission to assign this role.\n\nPlease contact a higher-level administrator.');
+        } else {
+          throw requestError;
+        }
+        return;
+      }
 
-      alert('Role change request sent! The user will be notified to accept the change.');
+      alert('✅ Success!\n\nRole change request sent. The user will be notified to accept the change.');
       setShowRoleModal(false);
       setSelectedUser(null);
       setRoleChangeMessage('');
       
     } catch (error: any) {
       console.error('Error assigning role:', error);
-      alert(`Failed to assign role: ${error.message}`);
+      alert(`❌ Failed to assign role\n\n${error.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -186,7 +222,7 @@ const UsersManager: React.FC = () => {
               <RefreshCw className="w-5 h-5 mr-2" />
               Refresh
             </Button>
-            {userLevel >= 2 && ( // Moderators and above can send invitations
+            {userLevel >= 2 && (
               <Button onClick={() => navigate('/portal/invitations')}>
                 <UserPlus className="w-5 h-5 mr-2" />
                 Manage Invitations
@@ -195,7 +231,7 @@ const UsersManager: React.FC = () => {
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Stats Section */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-xl border-2 border-gray-200 p-6">
             <div className="flex items-center gap-3">
@@ -208,7 +244,6 @@ const UsersManager: React.FC = () => {
               </div>
             </div>
           </div>
-
           <div className="bg-white rounded-xl border-2 border-gray-200 p-6">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
@@ -220,7 +255,6 @@ const UsersManager: React.FC = () => {
               </div>
             </div>
           </div>
-
           <div className="bg-white rounded-xl border-2 border-gray-200 p-6">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
@@ -243,14 +277,13 @@ const UsersManager: React.FC = () => {
               placeholder="Search by name, email, or username..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 outline-none"
             />
           </div>
-
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+            className="px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 outline-none"
           >
             <option value="all">All Roles</option>
             {roles.map(role => (
@@ -275,9 +308,7 @@ const UsersManager: React.FC = () => {
                 {filteredUsers.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
-                      {searchQuery || roleFilter !== 'all' 
-                        ? 'No users found matching your filters' 
-                        : 'No users yet'}
+                      No users found matching your filters
                     </td>
                   </tr>
                 ) : (
@@ -362,14 +393,10 @@ const UsersManager: React.FC = () => {
           <div className="bg-white rounded-2xl max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold text-gray-900">Assign Role</h2>
-              <button
-                onClick={() => setShowRoleModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
+              <button onClick={() => setShowRoleModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5 text-gray-600" />
               </button>
             </div>
-
             <div className="mb-4">
               <p className="text-sm text-gray-600 mb-2">User</p>
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
@@ -382,89 +409,33 @@ const UsersManager: React.FC = () => {
                 </div>
               </div>
             </div>
-
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Current Role
-              </label>
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <span 
-                  className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
-                  style={{ 
-                    backgroundColor: `${selectedUser.role.color}20`,
-                    color: selectedUser.role.color 
-                  }}
-                >
-                  <Shield className="w-3 h-3 mr-1" />
-                  {selectedUser.role.name}
-                </span>
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                New Role *
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">New Role *</label>
               <select
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 outline-none"
               >
                 {roles.map(role => (
-                  <option key={role.id} value={role.id}>
-                    {role.name} - {role.description}
-                  </option>
+                  <option key={role.id} value={role.id}>{role.name} - {role.description}</option>
                 ))}
               </select>
             </div>
-
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Message (Optional)
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Message (Optional)</label>
               <textarea
                 value={roleChangeMessage}
                 onChange={(e) => setRoleChangeMessage(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 outline-none"
                 rows={3}
-                placeholder="Add a message to explain the role change..."
+                placeholder="Add a message..."
               />
             </div>
-
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-              <div className="flex gap-2">
-                <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
-                <p className="text-sm text-yellow-800">
-                  The user will receive a notification and must accept this role change before it takes effect.
-                </p>
-              </div>
-            </div>
-
             <div className="flex gap-3">
-              <Button
-                onClick={() => setShowRoleModal(false)}
-                variant="outline"
-                className="flex-1"
-                disabled={submitting}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleAssignRole}
-                className="flex-1"
-                disabled={submitting || !selectedRole}
-              >
-                {submitting ? (
-                  <>
-                    <Loader className="w-5 h-5 mr-2 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <Shield className="w-5 h-5 mr-2" />
-                    Assign Role
-                  </>
-                )}
+              <Button onClick={() => setShowRoleModal(false)} variant="outline" className="flex-1">Cancel</Button>
+              <Button onClick={handleAssignRole} className="flex-1" disabled={submitting}>
+                {submitting ? <Loader className="w-5 h-5 mr-2 animate-spin" /> : <Shield className="w-5 h-5 mr-2" />}
+                Assign Role
               </Button>
             </div>
           </div>
