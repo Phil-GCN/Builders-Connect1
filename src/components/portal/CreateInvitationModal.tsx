@@ -40,7 +40,6 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
 
     const currentUserLevel = user.role_level || 1;
     
-    // Check if user can assign roles (Manager level 3 and above)
     const canAssign = currentUserLevel >= 3;
     setCanAssignRoles(canAssign);
 
@@ -49,11 +48,10 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
       return;
     }
 
-    // Load roles based on user's level
     let maxAssignableLevel = 0;
-    if (currentUserLevel === 3) maxAssignableLevel = 2; // Manager can assign up to Moderator
-    else if (currentUserLevel === 4) maxAssignableLevel = 3; // Admin can assign up to Manager
-    else if (currentUserLevel >= 5) maxAssignableLevel = 5; // Super Admin can assign anything
+    if (currentUserLevel === 3) maxAssignableLevel = 2;
+    else if (currentUserLevel === 4) maxAssignableLevel = 3;
+    else if (currentUserLevel >= 5) maxAssignableLevel = 5;
 
     const { data } = await supabase
       .from('roles')
@@ -63,7 +61,6 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
 
     setRoles(data || []);
     if (data && data.length > 0) {
-      // Default to Member role
       setRoleId(data.find(r => r.name === 'member')?.id || data[data.length - 1].id);
     }
   };
@@ -73,6 +70,7 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
 
     setCreating(true);
     try {
+      // Generate unique code
       const code = Array.from({ length: 8 }, () => 
         'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]
       ).join('');
@@ -81,6 +79,7 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
         ? new Date(Date.now() + parseInt(expiresInDays) * 24 * 60 * 60 * 1000).toISOString()
         : null;
 
+      // 1. Create the invitation record
       const { error } = await supabase
         .from('invitations')
         .insert({
@@ -96,6 +95,23 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
 
       if (error) throw error;
 
+      // 2. Queue the invitation email if a recipient email was provided
+      if (email) {
+        const inviterName = user.full_name || user.username || 'A member';
+        
+        await supabase.rpc('queue_email', {
+          p_to_email: email,
+          p_subject: `${inviterName} invited you to Builders Connect`,
+          p_html_content: '', // Template will generate the HTML
+          p_template_name: 'invitation',
+          p_template_data: {
+            inviterName,
+            inviteCode: code,
+            message: message || null
+          }
+        });
+      }
+
       alert('✅ Invitation created successfully!');
       onCreated();
 
@@ -109,7 +125,7 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6">
+      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Create Invitation</h2>
           <button
@@ -130,14 +146,13 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="recipient@example.com"
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Leave blank for a general invitation link
+              If provided, we will send an email automatically
             </p>
           </div>
 
-          {/* Only show role assignment for Managers+ */}
           {canAssignRoles && roles.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -156,19 +171,19 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
                 ))}
               </select>
               <p className="text-xs text-gray-500 mt-1">
-                New members will be assigned this role upon accepting
+                New members will be assigned this role upon registration
               </p>
             </div>
           )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Message (Optional)
+              Personal Note (Optional)
             </label>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Welcome to Builders Connect!"
+              placeholder="Hey! Join me on Builders Connect..."
               className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
               rows={3}
             />
@@ -183,7 +198,6 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
                 type="number"
                 value={expiresInDays}
                 onChange={(e) => setExpiresInDays(e.target.value)}
-                placeholder="30"
                 min="1"
                 max="365"
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
@@ -198,7 +212,6 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
                 type="number"
                 value={maxUses}
                 onChange={(e) => setMaxUses(e.target.value)}
-                placeholder="1"
                 min="1"
                 max="100"
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
@@ -229,7 +242,7 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
             ) : (
               <>
                 <UserPlus className="w-5 h-5 mr-2" />
-                Create
+                Create & Send
               </>
             )}
           </Button>
