@@ -1,9 +1,13 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { Users, Package, FileText, TrendingUp } from 'lucide-react';
+import { Users, Package, FileText, TrendingUp, UserPlus } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  const userLevel = user?.role_level || 1;
 
   // Get display name - prefer full_name, then username, fallback to email first part
   const getDisplayName = () => {
@@ -64,6 +68,24 @@ const Dashboard: React.FC = () => {
         <div className="bg-white rounded-xl border-2 border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
           <div className="grid md:grid-cols-3 gap-4">
+            {/* Conditional Invite Friends Card for Members/Moderators (Level 1 & 2) */}
+            {userLevel < 3 && (
+              <button
+                onClick={() => navigate('/portal/invitations')}
+                className="bg-white rounded-xl border-2 border-gray-200 p-6 hover:border-primary hover:bg-primary/5 transition-all text-left group"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                    <UserPlus className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <h3 className="font-bold text-gray-900">Invite Friends</h3>
+                </div>
+                <p className="text-sm text-gray-600">
+                  Share Builders Connect with your network
+                </p>
+              </button>
+            )}
+
             <button className="p-4 border-2 border-gray-200 rounded-lg hover:border-primary hover:bg-primary/5 transition-colors text-left">
               <p className="font-semibold text-gray-900">Invite User</p>
               <p className="text-sm text-gray-600 mt-1">Send invitation to new user</p>
