@@ -102,7 +102,6 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
     { id: 'content', label: 'Content Manager', icon: FileText, path: '/portal/content', requiredLevel: 3 },
     { id: 'community', label: 'Community', icon: MessageSquare, path: '/portal/community', requiredLevel: 2 },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/portal/analytics', requiredLevel: 3 },
-    // Updated Notifications to Communications/Support
     { 
       id: 'communications', 
       label: userLevel >= 3 ? 'Communications' : 'Support', 
@@ -112,7 +111,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
     },
     { id: 'permissions', label: 'Permissions', icon: Shield, path: '/portal/permissions', requiredLevel: 4 },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/portal/settings', requiredLevel: 4 },
-    { id: 'messages', label: 'Messages', icon: MessageSquare, path: '/portal/messages', requiredLevel: 1 },
+    // REMOVED: messages item (now accessible via Communications)
   ];
 
   const filteredMenuItems = menuItems.filter(item => {
@@ -182,7 +181,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
           </button>
         </div>
 
-        {/* Clickable Profile Section */}
+        {/* Profile Section */}
         <div className="p-4 border-b border-gray-200">
           <button
             onClick={() => navigate('/portal/profile')}
