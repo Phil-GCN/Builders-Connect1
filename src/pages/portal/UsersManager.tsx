@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/Button';
 import { 
@@ -31,6 +32,7 @@ interface Role {
 }
 
 const UsersManager: React.FC = () => {
+  const navigate = useNavigate();
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -44,6 +46,8 @@ const UsersManager: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [showPermissionsEditor, setShowPermissionsEditor] = useState(false);
   const [permissionsUser, setPermissionsUser] = useState<User | null>(null);
+
+  const userLevel = currentUser?.role_level || 1;
 
   useEffect(() => {
     loadData();
@@ -182,10 +186,12 @@ const UsersManager: React.FC = () => {
               <RefreshCw className="w-5 h-5 mr-2" />
               Refresh
             </Button>
-            <Button onClick={() => alert('Invitation system coming next!')}>
-              <UserPlus className="w-5 h-5 mr-2" />
-              Send Invitation
-            </Button>
+            {userLevel >= 2 && ( // Moderators and above can send invitations
+              <Button onClick={() => navigate('/portal/invitations')}>
+                <UserPlus className="w-5 h-5 mr-2" />
+                Manage Invitations
+              </Button>
+            )}
           </div>
         </div>
 
@@ -282,7 +288,6 @@ const UsersManager: React.FC = () => {
                           <div className="w-10 h-10 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
                             {user.full_name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
                           </div>
-                          {/* Updated User Display Section */}
                           <div>
                             <p className="font-semibold text-gray-900">
                               {user.full_name || user.username || 'No name'}
