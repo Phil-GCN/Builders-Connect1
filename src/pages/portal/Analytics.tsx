@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/Button';
 import { 
-  TrendingUp, TrendingDown, Users, ShoppingCart, DollarSign, 
-  Package, MessageSquare, Calendar, Download, Loader,
-  ArrowUpRight, ArrowDownRight, Minus
+  TrendingUp, Users, ShoppingCart, DollarSign, 
+  Package, Download, Loader, ArrowUpRight, 
+  ArrowDownRight, Minus
 } from 'lucide-react';
 import { 
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
@@ -102,14 +102,14 @@ const Analytics: React.FC = () => {
       // Orders stats
       const { data: ordersData } = await supabase
         .from('orders')
-        .select('total_amount, status');
+        .select('amount, status');
 
       const totalOrders = ordersData?.length || 0;
       const completedOrders = ordersData?.filter(o => o.status === 'completed').length || 0;
-      const totalRevenue = ordersData?.reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0;
+      const totalRevenue = ordersData?.reduce((sum, o) => sum + (Number(o.amount) || 0), 0) || 0;
       const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-      // Growth calculations (compare to previous period)
+      // Growth calculations
       const daysAgo = getDaysFromRange(dateRange);
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - daysAgo);
@@ -121,10 +121,10 @@ const Analytics: React.FC = () => {
 
       const { data: recentOrders } = await supabase
         .from('orders')
-        .select('total_amount')
+        .select('amount')
         .gte('created_at', startDate.toISOString());
 
-      const recentRevenue = recentOrders?.reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0;
+      const recentRevenue = recentOrders?.reduce((sum, o) => sum + (Number(o.amount) || 0), 0) || 0;
 
       // Previous period
       const prevStartDate = new Date(startDate);
@@ -138,11 +138,11 @@ const Analytics: React.FC = () => {
 
       const { data: prevOrders } = await supabase
         .from('orders')
-        .select('total_amount')
+        .select('amount')
         .gte('created_at', prevStartDate.toISOString())
         .lt('created_at', startDate.toISOString());
 
-      const prevRevenue = prevOrders?.reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0;
+      const prevRevenue = prevOrders?.reduce((sum, o) => sum + (Number(o.amount) || 0), 0) || 0;
 
       const userGrowth = prevUsers ? ((recentUsers! - prevUsers) / prevUsers) * 100 : 0;
       const revenueGrowth = prevRevenue ? ((recentRevenue - prevRevenue) / prevRevenue) * 100 : 0;
@@ -175,7 +175,7 @@ const Analytics: React.FC = () => {
 
       const chartData = (data || []).map(d => ({
         name: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        revenue: d.completed_revenue || 0,
+        revenue: Number(d.completed_revenue) || 0,
         orders: d.completed_orders || 0
       })).reverse();
 
@@ -183,6 +183,7 @@ const Analytics: React.FC = () => {
 
     } catch (error) {
       console.error('Error loading revenue data:', error);
+      setRevenueData([]);
     }
   };
 
@@ -205,6 +206,7 @@ const Analytics: React.FC = () => {
 
     } catch (error) {
       console.error('Error loading user growth data:', error);
+      setUserGrowthData([]);
     }
   };
 
@@ -222,6 +224,7 @@ const Analytics: React.FC = () => {
 
     } catch (error) {
       console.error('Error loading product stats:', error);
+      setProductStats([]);
     }
   };
 
@@ -238,6 +241,7 @@ const Analytics: React.FC = () => {
 
     } catch (error) {
       console.error('Error loading role distribution:', error);
+      setRoleDistribution([]);
     }
   };
 
@@ -276,7 +280,6 @@ const Analytics: React.FC = () => {
   };
 
   const exportToCSV = () => {
-    // Create CSV content
     const csvContent = [
       ['Metric', 'Value'],
       ['Total Users', stats.totalUsers],
@@ -289,7 +292,6 @@ const Analytics: React.FC = () => {
       ['Revenue Growth (%)', stats.revenueGrowth.toFixed(2)]
     ].map(row => row.join(',')).join('\n');
 
-    // Download
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -302,7 +304,7 @@ const Analytics: React.FC = () => {
   if (loading) {
     return (
       <div className="p-8">
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center min-h-[400px]">
           <Loader className="w-12 h-12 animate-spin text-primary" />
         </div>
       </div>
@@ -326,7 +328,6 @@ const Analytics: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-3">
-            {/* Date Range Selector */}
             <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value as DateRange)}
@@ -380,7 +381,7 @@ const Analytics: React.FC = () => {
             <p className="text-2xl font-bold text-gray-900">{stats.totalOrders.toLocaleString()}</p>
             <p className="text-sm text-gray-600">Total Orders</p>
             <p className="text-xs text-gray-500 mt-1">
-              {stats.totalOrders > 0 ? ((stats.completedOrders / stats.totalOrders) * 100).toFixed(1) : 0}% completion rate
+              {stats.totalOrders > 0 ? ((stats.completedOrders / stats.totalOrders) * 100).toFixed(1) : 0}% completion
             </p>
           </div>
 
@@ -398,7 +399,6 @@ const Analytics: React.FC = () => {
 
         {/* Charts Row 1 */}
         <div className="grid md:grid-cols-2 gap-6 mb-6">
-          {/* Revenue Chart */}
           <div className="bg-white rounded-xl border-2 border-gray-200 p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Revenue Over Time</h3>
             <ResponsiveContainer width="100%" height={300}>
@@ -406,23 +406,13 @@ const Analytics: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
-                <Tooltip 
-                  formatter={(value: number) => formatCurrency(value)}
-                  labelStyle={{ color: '#000' }}
-                />
+                <Tooltip formatter={(value: number) => formatCurrency(value)} />
                 <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="revenue" 
-                  stroke="#10B981" 
-                  strokeWidth={2}
-                  name="Revenue"
-                />
+                <Line type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={2} name="Revenue" />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* User Growth Chart */}
           <div className="bg-white rounded-xl border-2 border-gray-200 p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">User Growth</h3>
             <ResponsiveContainer width="100%" height={300}>
@@ -430,7 +420,7 @@ const Analytics: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
-                <Tooltip labelStyle={{ color: '#000' }} />
+                <Tooltip />
                 <Legend />
                 <Bar dataKey="users" fill="#3B82F6" name="New Users" />
               </BarChart>
@@ -439,51 +429,54 @@ const Analytics: React.FC = () => {
         </div>
 
         {/* Charts Row 2 */}
-        <div className="grid md:grid-cols-2 gap-6 mb-6">
-          {/* Role Distribution */}
+        <div className="grid md:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl border-2 border-gray-200 p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">User Role Distribution</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={roleChartData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {roleChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+            {roleChartData.length > 0 ? (
+              <>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={roleChartData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      dataKey="value"
+                    >
+                      {roleChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="mt-4 space-y-2">
+                  {roleDistribution.map(role => (
+                    <div key={role.role_name} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: role.color }}></div>
+                        <span className="text-gray-700">{role.display_name || role.role_name}</span>
+                      </div>
+                      <span className="font-semibold text-gray-900">{role.user_count}</span>
+                    </div>
                   ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="mt-4 space-y-2">
-              {roleDistribution.map(role => (
-                <div key={role.role_name} className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: role.color }}
-                    ></div>
-                    <span className="text-gray-700">{role.display_name || role.role_name}</span>
-                  </div>
-                  <span className="font-semibold text-gray-900">{role.user_count}</span>
                 </div>
-              ))}
-            </div>
+              </>
+            ) : (
+              <div className="text-center py-12">
+                <Users className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                <p className="text-gray-500 text-sm">No user data available</p>
+              </div>
+            )}
           </div>
 
-          {/* Top Products */}
           <div className="bg-white rounded-xl border-2 border-gray-200 p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Top Products</h3>
             <div className="space-y-3 max-h-[350px] overflow-y-auto">
               {productStats.length === 0 ? (
-                <div className="text-center py-8">
+                <div className="text-center py-12">
                   <Package className="w-12 h-12 text-gray-300 mx-auto mb-2" />
                   <p className="text-gray-500 text-sm">No product sales yet</p>
                 </div>
@@ -500,7 +493,7 @@ const Analytics: React.FC = () => {
                       </div>
                     </div>
                     <p className="font-bold text-green-600">
-                      {formatCurrency(product.total_revenue || 0)}
+                      {formatCurrency(Number(product.total_revenue) || 0)}
                     </p>
                   </div>
                 ))
