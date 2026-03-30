@@ -115,7 +115,6 @@ const Login: React.FC = () => {
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
-          // After the login button, before "Don't have an account":
           
           <div className="text-center">
             <Link to="/forgot-password" className="text-sm text-primary hover:underline">
