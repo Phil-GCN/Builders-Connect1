@@ -19,30 +19,52 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
+      // 1. Sign in with Supabase Auth
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        // Handle specific Supabase error cases
+        if (authError.message.includes('Email not confirmed')) {
+          setError('Please verify your email before logging in. Check your inbox for the confirmation link.');
+        } else if (authError.message.includes('Invalid login credentials')) {
+          setError('Invalid email or password. Please try again.');
+        } else {
+          setError(authError.message);
+        }
+        setLoading(false);
+        return;
+      }
 
       if (data.user) {
-        // Get user profile to check role
-        const { data: profile } = await supabase
+        // 2. Check if user exists in public.users table and get role
+        const { data: profile, error: userError } = await supabase
           .from('users')
           .select('role')
           .eq('id', data.user.id)
           .single();
 
-        // Redirect based on role
-        if (profile?.role === 'SUPER_ADMIN' || profile?.role === 'CONTENT_MANAGER') {
+        if (userError || !profile) {
+          // User exists in Auth but not in our custom users table
+          console.error('User not found in users table:', userError);
+          setError('Account setup incomplete. Please contact support.');
+          await supabase.auth.signOut();
+          setLoading(false);
+          return;
+        }
+
+        // 3. Success - Redirect based on role
+        if (profile.role === 'SUPER_ADMIN' || profile.role === 'CONTENT_MANAGER') {
           navigate('/admin');
         } else {
           navigate('/portal');
         }
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to login');
+      console.error('Login error:', err);
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -64,10 +86,11 @@ const Login: React.FC = () => {
             <p className="text-gray-600">Sign in to your BuildersConnect account</p>
           </div>
 
+          {/* Enhanced Error Display */}
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700">{error}</p>
+              <p className="text-sm text-red-800 leading-relaxed">{error}</p>
             </div>
           )}
 
@@ -116,8 +139,8 @@ const Login: React.FC = () => {
             </Button>
           </form>
           
-          <div className="text-center">
-            <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+          <div className="mt-4 text-center">
+            <Link to="/forgot-password" size="sm" className="text-sm text-primary hover:underline">
               Forgot your password?
             </Link>
           </div>
@@ -128,9 +151,9 @@ const Login: React.FC = () => {
               Create one here
             </Link>
           </p>
-          <p className="text-center text-xs text-gray-500">
-              By signing in, you agree to our Terms of Service and Privacy Policy
-            </p>
+          <p className="mt-4 text-center text-xs text-gray-500">
+            By signing in, you agree to our Terms of Service and Privacy Policy
+          </p>
         </div>
 
         <div className="text-center mt-6">
