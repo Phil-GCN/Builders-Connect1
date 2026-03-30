@@ -6,6 +6,8 @@ import {
   Users, Clock, Check, CheckCheck, MoreVertical
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+// Add import
+import { NewConversationModal } from '../../components/portal/NewConversationModal';
 
 interface Conversation {
   id: string;
@@ -245,6 +247,12 @@ const Messages: React.FC = () => {
     }
   };
 
+  // Add state handler
+  const handleConversationCreated = (conversationId: string) => {
+    setSelectedConversation(conversationId);
+    loadConversations();
+  };
+
   const selectedConvData = conversations.find(c => c.id === selectedConversation);
 
   const totalUnread = conversations.reduce((sum, conv) => sum + conv.unread_count, 0);
@@ -450,7 +458,13 @@ const Messages: React.FC = () => {
         )}
       </div>
 
-      {/* New Conversation Modal - Coming in next step */}
+      {/* New Conversation Modal */}
+      {showNewConversation && (
+        <NewConversationModal
+          onClose={() => setShowNewConversation(false)}
+          onCreated={handleConversationCreated}
+        />
+      )}
     </div>
   );
 };
