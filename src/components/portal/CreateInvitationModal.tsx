@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../Button';
-import { X, Loader, UserPlus } from 'lucide-react';
+import { X, Loader, UserPlus, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 interface Role {
@@ -9,6 +9,7 @@ interface Role {
   name: string;
   level: number;
   color: string;
+  display_name: string;
 }
 
 interface CreateInvitationModalProps {
@@ -28,20 +29,42 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
   const [expiresInDays, setExpiresInDays] = useState('30');
   const [maxUses, setMaxUses] = useState('1');
   const [creating, setCreating] = useState(false);
+  const [canAssignRoles, setCanAssignRoles] = useState(false);
 
   useEffect(() => {
     loadRoles();
-  }, []);
+  }, [user?.role_level]);
 
   const loadRoles = async () => {
+    if (!user?.id) return;
+
+    const currentUserLevel = user.role_level || 1;
+    
+    // Check if user can assign roles (Manager level 3 and above)
+    const canAssign = currentUserLevel >= 3;
+    setCanAssignRoles(canAssign);
+
+    if (!canAssign) {
+      setRoles([]);
+      return;
+    }
+
+    // Load roles based on user's level
+    let maxAssignableLevel = 0;
+    if (currentUserLevel === 3) maxAssignableLevel = 2; // Manager can assign up to Moderator
+    else if (currentUserLevel === 4) maxAssignableLevel = 3; // Admin can assign up to Manager
+    else if (currentUserLevel >= 5) maxAssignableLevel = 5; // Super Admin can assign anything
+
     const { data } = await supabase
       .from('roles')
       .select('*')
+      .lte('level', maxAssignableLevel)
       .order('level', { ascending: false });
 
     setRoles(data || []);
     if (data && data.length > 0) {
-      setRoleId(data.find(r => r.name === 'member')?.id || data[0].id);
+      // Default to Member role
+      setRoleId(data.find(r => r.name === 'member')?.id || data[data.length - 1].id);
     }
   };
 
@@ -65,7 +88,7 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
           code,
           invited_by: user.id,
           invited_email: email || null,
-          role_id: roleId || null,
+          role_id: canAssignRoles && roleId ? roleId : null,
           message: message || null,
           expires_at: expiresAt,
           max_uses: maxUses ? parseInt(maxUses) : null,
@@ -115,22 +138,34 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
             </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Assign Role
-            </label>
-            <select
-              value={roleId}
-              onChange={(e) => setRoleId(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-            >
-              {roles.map(role => (
-                <option key={role.id} value={role.id}>
-                  {role.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {canAssignRoles ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Assign Role
+              </label>
+              <select
+                value={roleId}
+                onChange={(e) => setRoleId(e.target.value)}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              >
+                {roles.map(role => (
+                  <option key={role.id} value={role.id}>
+                    {role.display_name || role.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex gap-2">
+                <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
+                <div className="text-sm text-yellow-800">
+                  <p className="font-medium mb-1">Role Assignment Restricted</p>
+                  <p>Only Managers and above can assign roles. New members will be assigned the default Member role.</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -139,7 +174,7 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Welcome to our platform!"
+              placeholder="Welcome to Builders Connect!"
               className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
               rows={3}
             />
@@ -155,6 +190,8 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
                 value={expiresInDays}
                 onChange={(e) => setExpiresInDays(e.target.value)}
                 placeholder="30"
+                min="1"
+                max="365"
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
               />
             </div>
@@ -168,6 +205,8 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
                 value={maxUses}
                 onChange={(e) => setMaxUses(e.target.value)}
                 placeholder="1"
+                min="1"
+                max="100"
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
               />
             </div>
