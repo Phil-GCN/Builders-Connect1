@@ -12,7 +12,9 @@ import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import Portal from './pages/portal/Portal';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import OrderSuccess from './pages/public/OrderSuccess'; // Add import
+import OrderSuccess from './pages/public/OrderSuccess'; 
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 
 function App() {
   return (
@@ -30,6 +32,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/order/success" element={<OrderSuccess />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         
         {/* Protected Portal - All authenticated users */}
         <Route path="/portal/*" element={
