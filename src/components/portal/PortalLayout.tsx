@@ -49,7 +49,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
         return;
       }
       
-      console.log('Unread notifications count:', count);
+      console.log('Unread notifications count for user', user.id, ':', count);
       setUnreadCount(count || 0);
     } catch (error) {
       console.error('Error in loadUnreadCount:', error);
