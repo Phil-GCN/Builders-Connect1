@@ -12,6 +12,7 @@ interface User {
   id: string;
   email: string;
   full_name: string;
+  username?: string; // Added support for username
   created_at: string;
   role: {
     id: string;
@@ -51,13 +52,14 @@ const UsersManager: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Load users with roles
+      // Load users with roles and include username in query
       const { data: usersData, error: usersError } = await supabase
         .from('users')
         .select(`
           id,
           email,
           full_name,
+          username,
           created_at,
           role_id,
           roles!inner(id, name, level, color)
@@ -104,7 +106,6 @@ const UsersManager: React.FC = () => {
   const handleAssignRole = async () => {
     if (!selectedUser || !selectedRole) return;
 
-    // Check if role is different
     if (selectedRole === selectedUser.role.id) {
       alert('This user already has this role');
       return;
@@ -112,7 +113,6 @@ const UsersManager: React.FC = () => {
 
     setSubmitting(true);
     try {
-      // Create role change request
       const { error: requestError } = await supabase
         .from('role_change_requests')
         .insert({
@@ -142,7 +142,8 @@ const UsersManager: React.FC = () => {
   const filteredUsers = users.filter(user => {
     const matchesSearch = 
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.full_name?.toLowerCase().includes(searchQuery.toLowerCase());
+      user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.username?.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesRole = roleFilter === 'all' || user.role.id === roleFilter;
 
@@ -233,7 +234,7 @@ const UsersManager: React.FC = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by name or email..."
+              placeholder="Search by name, email, or username..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
@@ -281,11 +282,14 @@ const UsersManager: React.FC = () => {
                           <div className="w-10 h-10 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
                             {user.full_name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
                           </div>
+                          {/* Updated User Display Section */}
                           <div>
-                            <p className="font-semibold text-gray-900">{user.full_name || 'No name'}</p>
+                            <p className="font-semibold text-gray-900">
+                              {user.full_name || user.username || 'No name'}
+                            </p>
                             <p className="text-sm text-gray-600 flex items-center gap-1">
                               <Mail className="w-3 h-3" />
-                              {user.email}
+                              {user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3')}
                             </p>
                           </div>
                         </div>
@@ -327,6 +331,7 @@ const UsersManager: React.FC = () => {
                                 }}
                                 size="sm"
                                 variant="outline"
+                                className="ml-2"
                               >
                                 <Shield className="w-4 h-4 mr-1" />
                                 Permissions
@@ -367,8 +372,8 @@ const UsersManager: React.FC = () => {
                   {selectedUser.full_name?.charAt(0).toUpperCase() || selectedUser.email.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900">{selectedUser.full_name}</p>
-                  <p className="text-sm text-gray-600">{selectedUser.email}</p>
+                  <p className="font-semibold text-gray-900">{selectedUser.full_name || selectedUser.username}</p>
+                  <p className="text-sm text-gray-600">{selectedUser.email.replace(/(.{2})(.*)(@.*)/, '$1***$3')}</p>
                 </div>
               </div>
             </div>
@@ -465,7 +470,7 @@ const UsersManager: React.FC = () => {
       {showPermissionsEditor && permissionsUser && (
         <UserPermissionsEditor
           userId={permissionsUser.id}
-          userName={permissionsUser.full_name || 'No name'}
+          userName={permissionsUser.full_name || permissionsUser.username || 'No name'}
           userEmail={permissionsUser.email}
           userRoleLevel={permissionsUser.role.level}
           onClose={() => {
