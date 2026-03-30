@@ -41,33 +41,84 @@ const Notifications: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
+      console.log('Loading notifications for user:', user?.id);
+  
       // Load notifications
       const { data: notifData, error: notifError } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
-
-      if (notifError) throw notifError;
+  
+      if (notifError) {
+        console.error('Notification error:', notifError);
+        throw notifError;
+      }
+  
+      console.log('Notifications loaded:', notifData);
       setNotifications(notifData || []);
-
+  
       // Load pending role change requests
       const { data: requestsData, error: requestsError } = await supabase
         .from('role_change_requests')
         .select(`
-          id,
-          message,
-          status,
-          from_role:from_role_id(name, color),
-          to_role:to_role_id(name, color),
-          requested_by_user:requested_by(full_name, email)
-        `)
+            id,
+            message,
+            status,
+            from_role_id,
+            to_role_id,
+            requested_by
+          `)
         .eq('user_id', user?.id)
         .eq('status', 'pending');
-
-      if (requestsError) throw requestsError;
-      setRoleRequests(requestsData || []);
-
+  
+      if (requestsError) {
+        console.error('Role requests error:', requestsError);
+        throw requestsError;
+      }
+  
+      console.log('Role requests loaded:', requestsData);
+  
+      // Now fetch the related data separately
+      if (requestsData && requestsData.length > 0) {
+        const requestsWithDetails = await Promise.all(
+          requestsData.map(async (req) => {
+            // Get from_role
+            const { data: fromRole } = await supabase
+              .from('roles')
+              .select('name, color')
+              .eq('id', req.from_role_id)
+              .single();
+  
+            // Get to_role
+            const { data: toRole } = await supabase
+              .from('roles')
+              .select('name, color')
+              .eq('id', req.to_role_id)
+              .single();
+  
+            // Get requester
+            const { data: requester } = await supabase
+              .from('users')
+              .select('full_name, email')
+              .eq('id', req.requested_by)
+              .single();
+  
+            return {
+              ...req,
+              from_role: fromRole || { name: 'Unknown', color: '#gray' },
+              to_role: toRole || { name: 'Unknown', color: '#gray' },
+              requested_by_user: requester || { full_name: 'Unknown', email: '' }
+            };
+          })
+        );
+  
+        console.log('Requests with details:', requestsWithDetails);
+        setRoleRequests(requestsWithDetails);
+      } else {
+        setRoleRequests([]);
+      }
+  
     } catch (error) {
       console.error('Error loading notifications:', error);
     } finally {
