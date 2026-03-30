@@ -62,7 +62,21 @@ const Signup: React.FC = () => {
 
         if (profileError) throw profileError;
 
-        // 3. Success
+        // 3. Send welcome email
+        const userName = authData.user.user_metadata?.name || 
+                         formData.name || 
+                         authData.user.email?.split('@')[0] || 
+                         'Builder';
+        
+        const emailTemplate = emailTemplates.welcome(userName, authData.user.email!);
+        
+        sendEmail({
+          to: authData.user.email!,
+          subject: emailTemplate.subject,
+          html: emailTemplate.html
+        }).catch(err => console.error('Failed to send welcome email:', err));
+
+        // 4. Success navigation
         alert('Account created! Please check your email to verify your account, then login.');
         navigate('/login');
       }
