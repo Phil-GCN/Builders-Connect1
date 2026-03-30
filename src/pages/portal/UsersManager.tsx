@@ -26,6 +26,7 @@ interface User {
 interface Role {
   id: string;
   name: string;
+  display_name?: string;
   level: number;
   description: string;
   color: string;
@@ -47,7 +48,7 @@ const UsersManager: React.FC = () => {
   const [showPermissionsEditor, setShowPermissionsEditor] = useState(false);
   const [permissionsUser, setPermissionsUser] = useState<User | null>(null);
 
-  const userLevel = currentUser?.role_level || 1;
+  const currentUserLevel = currentUser?.role_level || 1;
 
   useEffect(() => {
     loadData();
@@ -101,37 +102,30 @@ const UsersManager: React.FC = () => {
     setShowRoleModal(true);
   };
 
-  // Updated handleAssignRole with enhanced validation
   const handleAssignRole = async () => {
     if (!selectedUser || !selectedRole) return;
 
-    // Check if role is different
     if (selectedRole === selectedUser.role.id) {
       alert('⚠️ This user already has this role');
       return;
     }
 
-    // Get current user and selected role info
-    const currentUserLevel = currentUser?.role_level || 0;
     const targetUserLevel = selectedUser.role.level;
     const selectedRoleData = roles.find(r => r.id === selectedRole);
     const newRoleLevel = selectedRoleData?.level || 0;
 
-    // Friendly validation messages
     if (currentUserLevel < 3) {
       alert('⚠️ Access Denied\n\nOnly Managers and above can assign roles.');
       setShowRoleModal(false);
       return;
     }
 
-    // Check if trying to modify admin+ user
     if (targetUserLevel >= 4 && currentUserLevel < 5) {
       alert('⚠️ Permission Denied\n\nYou cannot change the role of Admin users.\n\nOnly Super Admins can modify Admin roles.');
       setShowRoleModal(false);
       return;
     }
 
-    // Check if trying to assign role beyond permissions
     if (currentUserLevel === 3 && newRoleLevel > 2) {
       alert('⚠️ Permission Denied\n\nAs a Manager, you can only assign:\n• Member\n• Moderator\n\nContact an Admin to assign Manager+ roles.');
       setShowRoleModal(false);
@@ -190,18 +184,10 @@ const UsersManager: React.FC = () => {
     return matchesSearch && matchesRole;
   });
 
-  const stats = {
-    total: users.length,
-    admins: users.filter(u => u.role.level >= 3).length,
-    members: users.filter(u => u.role.level < 3).length,
-  };
-
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="flex items-center justify-center">
-          <Loader className="w-12 h-12 animate-spin text-primary" />
-        </div>
+      <div className="p-8 flex items-center justify-center">
+        <Loader className="w-12 h-12 animate-spin text-primary" />
       </div>
     );
   }
@@ -213,58 +199,19 @@ const UsersManager: React.FC = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Users Manager</h1>
-            <p className="text-gray-600 mt-2">
-              Manage users, assign roles, and send invitations
-            </p>
+            <p className="text-gray-600 mt-2">Manage users and roles</p>
           </div>
           <div className="flex gap-3">
             <Button onClick={loadData} variant="outline">
               <RefreshCw className="w-5 h-5 mr-2" />
               Refresh
             </Button>
-            {userLevel >= 2 && (
+            {currentUserLevel >= 2 && (
               <Button onClick={() => navigate('/portal/invitations')}>
                 <UserPlus className="w-5 h-5 mr-2" />
                 Manage Invitations
               </Button>
             )}
-          </div>
-        </div>
-
-        {/* Stats Section */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl border-2 border-gray-200 p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Users className="w-6 h-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-                <p className="text-sm text-gray-600">Total Users</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl border-2 border-gray-200 p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                <Shield className="w-6 h-6 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{stats.admins}</p>
-                <p className="text-sm text-gray-600">Admins</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl border-2 border-gray-200 p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{stats.members}</p>
-                <p className="text-sm text-gray-600">Members</p>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -274,185 +221,141 @@ const UsersManager: React.FC = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by name, email, or username..."
+              placeholder="Search users..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 outline-none"
+              className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg outline-none"
             />
           </div>
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 outline-none"
+            className="px-4 py-3 border-2 border-gray-300 rounded-lg outline-none"
           >
             <option value="all">All Roles</option>
             {roles.map(role => (
-              <option key={role.id} value={role.id}>{role.name}</option>
+              <option key={role.id} value={role.id}>{role.display_name || role.name}</option>
             ))}
           </select>
         </div>
 
-        {/* Users Table */}
+        {/* Table */}
         <div className="bg-white rounded-xl border-2 border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b-2 border-gray-200">
-                <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">User</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Role</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Joined</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold text-gray-900">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredUsers.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
-                      No users found matching your filters
-                    </td>
-                  </tr>
-                ) : (
-                  filteredUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                            {user.full_name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">
-                              {user.full_name || user.username || 'No name'}
-                            </p>
-                            <p className="text-sm text-gray-600 flex items-center gap-1">
-                              <Mail className="w-3 h-3" />
-                              {user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3')}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span 
-                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
-                          style={{ 
-                            backgroundColor: `${user.role.color}20`,
-                            color: user.role.color 
-                          }}
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b-2 border-gray-200">
+              <tr>
+                <th className="px-6 py-4 text-left">User</th>
+                <th className="px-6 py-4 text-left">Role</th>
+                <th className="px-6 py-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filteredUsers.map((user) => (
+                <tr key={user.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4">
+                    <div>
+                      <p className="font-semibold text-gray-900">{user.full_name || user.username || 'No name'}</p>
+                      <p className="text-sm text-gray-600 flex items-center gap-1">
+                        <Mail className="w-3 h-3" />
+                        {user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3')}
+                      </p>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span 
+                      className="px-3 py-1 rounded-full text-xs font-medium"
+                      style={{ backgroundColor: `${user.role.color}20`, color: user.role.color }}
+                    >
+                      {user.role.name}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    {user.id !== currentUser?.id && (
+                      <div className="flex justify-end gap-2">
+                        <Button onClick={() => handleOpenRoleModal(user)} size="sm" variant="outline">
+                          <Shield className="w-4 h-4 mr-1" /> Role
+                        </Button>
+                        <Button
+                          onClick={() => { setPermissionsUser(user); setShowPermissionsEditor(true); }}
+                          size="sm" variant="outline"
                         >
-                          <Shield className="w-3 h-3 mr-1" />
-                          {user.role.name}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1 text-sm text-gray-600">
-                          <Calendar className="w-4 h-4" />
-                          {new Date(user.created_at).toLocaleDateString()}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          {user.id !== currentUser?.id ? (
-                            <>
-                              <Button
-                                onClick={() => handleOpenRoleModal(user)}
-                                size="sm"
-                                variant="outline"
-                              >
-                                <Shield className="w-4 h-4 mr-1" />
-                                Change Role
-                              </Button>
-                              <Button
-                                onClick={() => {
-                                  setPermissionsUser(user);
-                                  setShowPermissionsEditor(true);
-                                }}
-                                size="sm"
-                                variant="outline"
-                                className="ml-2"
-                              >
-                                <Shield className="w-4 h-4 mr-1" />
-                                Permissions
-                              </Button>
-                            </>
-                          ) : (
-                            <span className="text-xs text-gray-500 italic">You</span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                          <Shield className="w-4 h-4 mr-1" /> Perms
+                        </Button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
       {/* Role Assignment Modal */}
       {showRoleModal && selectedUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Assign Role</h2>
               <button onClick={() => setShowRoleModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5 text-gray-600" />
               </button>
             </div>
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-2">User</p>
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <div className="w-10 h-10 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                  {selectedUser.full_name?.charAt(0).toUpperCase() || selectedUser.email.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">{selectedUser.full_name || selectedUser.username}</p>
-                  <p className="text-sm text-gray-600">{selectedUser.email.replace(/(.{2})(.*)(@.*)/, '$1***$3')}</p>
-                </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Select New Role</label>
+                <select
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 outline-none"
+                >
+                  {roles
+                    .filter(role => {
+                      // Logic: Filter based on currentUserLevel
+                      if (currentUserLevel === 3) return role.level <= 2;
+                      if (currentUserLevel === 4) return role.level <= 3;
+                      return true; // Super Admin (5+) can see all
+                    })
+                    .map(role => (
+                      <option key={role.id} value={role.id}>
+                        {role.display_name || role.name} - {role.description}
+                      </option>
+                    ))}
+                </select>
               </div>
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">New Role *</label>
-              <select
-                value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 outline-none"
-              >
-                {roles.map(role => (
-                  <option key={role.id} value={role.id}>{role.name} - {role.description}</option>
-                ))}
-              </select>
-            </div>
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Message (Optional)</label>
-              <textarea
-                value={roleChangeMessage}
-                onChange={(e) => setRoleChangeMessage(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 outline-none"
-                rows={3}
-                placeholder="Add a message..."
-              />
-            </div>
-            <div className="flex gap-3">
-              <Button onClick={() => setShowRoleModal(false)} variant="outline" className="flex-1">Cancel</Button>
-              <Button onClick={handleAssignRole} className="flex-1" disabled={submitting}>
-                {submitting ? <Loader className="w-5 h-5 mr-2 animate-spin" /> : <Shield className="w-5 h-5 mr-2" />}
-                Assign Role
-              </Button>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Message (Optional)</label>
+                <textarea
+                  value={roleChangeMessage}
+                  onChange={(e) => setRoleChangeMessage(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg outline-none"
+                  rows={3}
+                  placeholder="Explain why the role is being changed..."
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button onClick={() => setShowRoleModal(false)} variant="outline" className="flex-1">Cancel</Button>
+                <Button onClick={handleAssignRole} className="flex-1" disabled={submitting}>
+                  {submitting ? <Loader className="w-5 h-5 animate-spin" /> : <Shield className="w-5 h-5 mr-1" />}
+                  Assign Role
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Permissions Editor Modal */}
+      {/* Permissions Modal */}
       {showPermissionsEditor && permissionsUser && (
         <UserPermissionsEditor
           userId={permissionsUser.id}
           userName={permissionsUser.full_name || permissionsUser.username || 'No name'}
           userEmail={permissionsUser.email}
           userRoleLevel={permissionsUser.role.level}
-          onClose={() => {
-            setShowPermissionsEditor(false);
-            setPermissionsUser(null);
-          }}
+          onClose={() => { setShowPermissionsEditor(false); setPermissionsUser(null); }}
         />
       )}
     </div>
