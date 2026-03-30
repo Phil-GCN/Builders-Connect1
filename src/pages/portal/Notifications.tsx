@@ -20,11 +20,14 @@ interface Notification {
 
 interface RoleChangeRequest {
   id: string;
+  from_role_id: string;
+  to_role_id: string;
+  requested_by: string;
+  message: string | null;
+  status: string;
   from_role: { name: string; color: string };
   to_role: { name: string; color: string };
   requested_by_user: { full_name: string; email: string };
-  message: string | null;
-  status: string;
 }
 
 const Notifications: React.FC = () => {
@@ -35,51 +38,52 @@ const Notifications: React.FC = () => {
   const [processing, setProcessing] = useState<string | null>(null);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (user?.id) {
+      loadData();
+    }
+  }, [user?.id]);
 
   const loadData = async () => {
+    if (!user?.id) {
+      console.error('User ID is not available');
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
-      console.log('Loading notifications for user:', user?.id);
-  
+      console.log('Loading notifications for user:', user.id);
+
       // Load notifications
       const { data: notifData, error: notifError } = await supabase
         .from('notifications')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
-  
+
       if (notifError) {
         console.error('Notification error:', notifError);
         throw notifError;
       }
-  
+
       console.log('Notifications loaded:', notifData);
       setNotifications(notifData || []);
-  
+
       // Load pending role change requests
       const { data: requestsData, error: requestsError } = await supabase
         .from('role_change_requests')
-        .select(`
-            id,
-            message,
-            status,
-            from_role_id,
-            to_role_id,
-            requested_by
-          `)
-        .eq('user_id', user?.id)
+        .select('id, message, status, from_role_id, to_role_id, requested_by')
+        .eq('user_id', user.id)
         .eq('status', 'pending');
-  
+
       if (requestsError) {
         console.error('Role requests error:', requestsError);
         throw requestsError;
       }
-  
+
       console.log('Role requests loaded:', requestsData);
-  
-      // Now fetch the related data separately
+
+      // Fetch related data separately
       if (requestsData && requestsData.length > 0) {
         const requestsWithDetails = await Promise.all(
           requestsData.map(async (req) => {
@@ -89,36 +93,36 @@ const Notifications: React.FC = () => {
               .select('name, color')
               .eq('id', req.from_role_id)
               .single();
-  
+
             // Get to_role
             const { data: toRole } = await supabase
               .from('roles')
               .select('name, color')
               .eq('id', req.to_role_id)
               .single();
-  
+
             // Get requester
             const { data: requester } = await supabase
               .from('users')
               .select('full_name, email')
               .eq('id', req.requested_by)
               .single();
-  
+
             return {
               ...req,
-              from_role: fromRole || { name: 'Unknown', color: '#gray' },
-              to_role: toRole || { name: 'Unknown', color: '#gray' },
+              from_role: fromRole || { name: 'Unknown', color: '#6B7280' },
+              to_role: toRole || { name: 'Unknown', color: '#6B7280' },
               requested_by_user: requester || { full_name: 'Unknown', email: '' }
             };
           })
         );
-  
+
         console.log('Requests with details:', requestsWithDetails);
         setRoleRequests(requestsWithDetails);
       } else {
         setRoleRequests([]);
       }
-  
+
     } catch (error) {
       console.error('Error loading notifications:', error);
     } finally {
@@ -144,11 +148,13 @@ const Notifications: React.FC = () => {
   };
 
   const handleMarkAllAsRead = async () => {
+    if (!user?.id) return;
+
     try {
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .eq('read', false);
 
       if (error) throw error;
@@ -175,9 +181,10 @@ const Notifications: React.FC = () => {
   };
 
   const handleRoleResponse = async (requestId: string, accept: boolean) => {
+    if (!user?.id) return;
+
     setProcessing(requestId);
     try {
-      // Get the request details
       const request = roleRequests.find(r => r.id === requestId);
       if (!request) throw new Error('Request not found');
 
@@ -196,15 +203,15 @@ const Notifications: React.FC = () => {
       if (accept) {
         const { error: roleError } = await supabase
           .from('users')
-          .update({ role_id: request.to_role.id })
-          .eq('id', user?.id);
+          .update({ role_id: request.to_role_id })
+          .eq('id', user.id);
 
         if (roleError) throw roleError;
 
-        alert('✅ Role change accepted! Your new role is now active.');
+        alert('✅ Role change accepted! Your new role is now active. Please refresh the page.');
         
         // Reload page to reflect new role
-        window.location.reload();
+        setTimeout(() => window.location.reload(), 1000);
       } else {
         alert('Role change rejected');
         setRoleRequests(prev => prev.filter(r => r.id !== requestId));
@@ -225,6 +232,18 @@ const Notifications: React.FC = () => {
       <div className="p-8">
         <div className="flex items-center justify-center">
           <Loader className="w-12 h-12 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!user?.id) {
+    return (
+      <div className="p-8">
+        <div className="text-center py-12">
+          <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Unable to load notifications</h3>
+          <p className="text-gray-600">Please try refreshing the page</p>
         </div>
       </div>
     );
@@ -264,7 +283,7 @@ const Notifications: React.FC = () => {
                       New Role Assignment
                     </h3>
                     <p className="text-gray-700 mb-3">
-                      <strong>{request.requested_by_user.full_name}</strong> wants to assign you a new role
+                      <strong>{request.requested_by_user.full_name || request.requested_by_user.email}</strong> wants to assign you a new role
                     </p>
                     
                     <div className="flex items-center gap-4 mb-3">
@@ -364,7 +383,7 @@ const Notifications: React.FC = () => {
                         {new Date(notification.created_at).toLocaleDateString()}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
+                    <p className="text-sm text-gray-600 mb-2 whitespace-pre-wrap">{notification.message}</p>
                     
                     <div className="flex items-center gap-2">
                       {!notification.read && (
