@@ -88,7 +88,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
     }
   }, [user?.id]);
 
-  // 4. Data Structures (Clean Version)
+  // 4. Data Structures (Main Menu Only)
   const menuItems: MenuItem[] = [
     { 
       id: 'dashboard', 
@@ -137,21 +137,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
       icon: BarChart3, 
       path: '/portal/analytics', 
       requiredLevel: 3 
-    },
-    { 
-      id: 'communications', 
-      label: userLevel >= 3 ? 'Communications' : 'Support', 
-      icon: Bell, 
-      path: '/portal/communications', 
-      requiredLevel: 1 
-    },
-    { 
-      id: 'settings', 
-      label: 'Settings', 
-      icon: Settings, 
-      path: '/portal/settings', 
-      requiredLevel: 4 
-    },
+    }
   ];
 
   const filteredMenuItems = menuItems.filter(item => {
@@ -203,7 +189,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
           sidebarOpen ? 'lg:w-64' : 'lg:w-20'
         }`}
       >
-        <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
+        <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200 flex-shrink-0">
           {sidebarOpen && (
             <Link to="/" className="text-xl font-bold text-primary">
               BUILDERSCONNECT
@@ -218,7 +204,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
         </div>
 
         {/* Clickable Profile Section */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b border-gray-200 flex-shrink-0">
           <button
             onClick={() => navigate('/portal/profile')}
             className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors w-full text-left overflow-hidden"
@@ -237,6 +223,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
           </button>
         </div>
 
+        {/* Scrollable Navigation Area */}
         <nav className="flex-1 overflow-y-auto p-4">
           <ul className="space-y-1">
             {filteredMenuItems.map((item) => {
@@ -259,7 +246,40 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
           </ul>
         </nav>
 
-        <div className="p-4 border-t border-gray-200">
+        {/* Fixed Footer Section */}
+        <div className="p-4 border-t border-gray-200 flex-shrink-0">
+          {/* Communications Link with Badge */}
+          <Link
+            to="/portal/communications"
+            className={`flex items-center gap-3 px-3 py-2 mb-2 rounded-lg transition-colors relative ${
+              isActive('/portal/communications') ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <div className="relative">
+              <Bell className="w-5 h-5 flex-shrink-0" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-2 -right-2 w-4 h-4 bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </div>
+            {sidebarOpen && <span className="font-medium">{userLevel >= 3 ? 'Communications' : 'Support'}</span>}
+          </Link>
+
+          {/* Settings Link (for Admins) */}
+          {userLevel >= 4 && (
+            <Link
+              to="/portal/settings"
+              className={`flex items-center gap-3 px-3 py-2 mb-2 rounded-lg transition-colors ${
+                isActive('/portal/settings') ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <Settings className="w-5 h-5 flex-shrink-0" />
+              {sidebarOpen && <span className="font-medium">Settings</span>}
+            </Link>
+          )}
+
+          {/* Sign Out Button */}
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 w-full transition-colors"
@@ -270,7 +290,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
         </div>
       </aside>
 
-      {/* Mobile Sidebar */}
+      {/* Mobile Sidebar Overlay */}
       {mobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setMobileMenuOpen(false)}>
           <aside className="fixed inset-y-0 left-0 w-64 bg-white" onClick={(e) => e.stopPropagation()}>
@@ -310,6 +330,33 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
                     </li>
                   );
                 })}
+                {/* Mobile specific Links for footer items */}
+                <li>
+                  <Link
+                    to="/portal/communications"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive('/portal/communications') ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Bell className="w-5 h-5" />
+                    <span className="font-medium">{userLevel >= 3 ? 'Communications' : 'Support'}</span>
+                  </Link>
+                </li>
+                {userLevel >= 4 && (
+                  <li>
+                    <Link
+                      to="/portal/settings"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                        isActive('/portal/settings') ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      <Settings className="w-5 h-5" />
+                      <span className="font-medium">Settings</span>
+                    </Link>
+                  </li>
+                )}
               </ul>
             </nav>
           </aside>
