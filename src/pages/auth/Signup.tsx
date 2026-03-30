@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { UserPlus, Mail, Lock, User, AlertCircle } from 'lucide-react';
 import { Button } from '../../components/Button';
+import { sendEmail, emailTemplates } from '../../services/emailService';
 
 const Signup: React.FC = () => {
   const navigate = useNavigate();
