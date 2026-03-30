@@ -6,7 +6,6 @@ import {
   Users, Clock, Check, CheckCheck, MoreVertical
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-// Add import
 import { NewConversationModal } from '../../components/portal/NewConversationModal';
 
 interface Conversation {
@@ -63,7 +62,6 @@ const Messages: React.FC = () => {
       loadMessages();
       markAsRead();
 
-      // Subscribe to new messages
       const subscription = supabase
         .channel(`conversation_${selectedConversation}`)
         .on('postgres_changes', {
@@ -88,35 +86,47 @@ const Messages: React.FC = () => {
 
     setLoading(true);
     try {
-      // Get user's conversation IDs
+      // 1. Get user's conversation IDs first
       const { data: participantData, error: participantError } = await supabase
         .from('conversation_participants')
         .select('conversation_id, last_read_at')
         .eq('user_id', user.id);
 
-      if (participantError) throw participantError;
+      if (participantError) {
+        console.error('Error loading participants:', participantError);
+        throw participantError;
+      }
+
+      console.log('User participant data:', participantData);
 
       if (!participantData || participantData.length === 0) {
+        console.log('No conversations found');
         setConversations([]);
         setLoading(false);
         return;
       }
 
       const conversationIds = participantData.map(p => p.conversation_id);
+      console.log('Conversation IDs:', conversationIds);
 
-      // Get conversations
+      // 2. Get conversations
       const { data: convData, error: convError } = await supabase
         .from('conversations')
         .select('*')
         .in('id', conversationIds)
         .order('last_message_at', { ascending: false });
 
-      if (convError) throw convError;
+      if (convError) {
+        console.error('Error loading conversations:', convError);
+        throw convError;
+      }
 
-      // Enrich with participants and last message
+      console.log('Conversations loaded:', convData);
+
+      // 3. Enrich with participants and last message
       const enrichedConversations = await Promise.all(
         (convData || []).map(async (conv) => {
-          // Get participants
+          // Get OTHER participants (not current user)
           const { data: participants } = await supabase
             .from('conversation_participants')
             .select(`
@@ -126,13 +136,13 @@ const Messages: React.FC = () => {
             .eq('conversation_id', conv.id)
             .neq('user_id', user.id);
 
-          // Get last message
+          // Get last message - Using users!sender_id join
           const { data: lastMsg } = await supabase
             .from('messages')
             .select(`
               content,
               created_at,
-              sender:sender_id(full_name, username)
+              sender:users!sender_id(full_name, username)
             `)
             .eq('conversation_id', conv.id)
             .order('created_at', { ascending: false })
@@ -141,11 +151,13 @@ const Messages: React.FC = () => {
 
           // Get unread count
           const participantInfo = participantData.find(p => p.conversation_id === conv.id);
+          const lastReadAt = participantInfo?.last_read_at || '1970-01-01';
+          
           const { count } = await supabase
             .from('messages')
             .select('*', { count: 'exact', head: true })
             .eq('conversation_id', conv.id)
-            .gt('created_at', participantInfo?.last_read_at || '1970-01-01');
+            .gt('created_at', lastReadAt);
 
           return {
             ...conv,
@@ -165,6 +177,7 @@ const Messages: React.FC = () => {
         })
       );
 
+      console.log('Enriched conversations:', enrichedConversations);
       setConversations(enrichedConversations);
 
     } catch (error) {
@@ -182,13 +195,18 @@ const Messages: React.FC = () => {
         .from('messages')
         .select(`
           *,
-          sender:sender_id(full_name, username, email)
+          sender:users!sender_id(full_name, username, email)
         `)
         .eq('conversation_id', selectedConversation)
+        .eq('is_deleted', false) // Added filter
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading messages:', error);
+        throw error;
+      }
 
+      console.log('Messages loaded:', data);
       setMessages(data || []);
 
     } catch (error) {
@@ -206,7 +224,6 @@ const Messages: React.FC = () => {
         .eq('conversation_id', selectedConversation)
         .eq('user_id', user.id);
 
-      // Update local state
       setConversations(prev =>
         prev.map(conv =>
           conv.id === selectedConversation
@@ -247,15 +264,12 @@ const Messages: React.FC = () => {
     }
   };
 
-  // Add state handler
   const handleConversationCreated = (conversationId: string) => {
     setSelectedConversation(conversationId);
     loadConversations();
   };
 
   const selectedConvData = conversations.find(c => c.id === selectedConversation);
-
-  const totalUnread = conversations.reduce((sum, conv) => sum + conv.unread_count, 0);
 
   if (loading) {
     return (
@@ -269,9 +283,7 @@ const Messages: React.FC = () => {
 
   return (
     <div className="h-[calc(100vh-4rem)] flex">
-      {/* Conversations List */}
       <div className="w-80 border-r border-gray-200 bg-white flex flex-col">
-        {/* Header */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-gray-900">Messages</h2>
@@ -284,7 +296,6 @@ const Messages: React.FC = () => {
             </Button>
           </div>
 
-          {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
@@ -295,7 +306,6 @@ const Messages: React.FC = () => {
           </div>
         </div>
 
-        {/* Conversations */}
         <div className="flex-1 overflow-y-auto">
           {conversations.length === 0 ? (
             <div className="p-8 text-center">
@@ -353,11 +363,9 @@ const Messages: React.FC = () => {
         </div>
       </div>
 
-      {/* Messages Area */}
       <div className="flex-1 flex flex-col bg-gray-50">
         {selectedConversation && selectedConvData ? (
           <>
-            {/* Conversation Header */}
             <div className="bg-white border-b border-gray-200 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -382,7 +390,6 @@ const Messages: React.FC = () => {
               </div>
             </div>
 
-            {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.map(msg => {
                 const isOwn = msg.sender_id === user?.id;
@@ -418,7 +425,6 @@ const Messages: React.FC = () => {
               })}
             </div>
 
-            {/* Message Input */}
             <div className="bg-white border-t border-gray-200 p-4">
               <div className="flex gap-3">
                 <input
@@ -458,7 +464,6 @@ const Messages: React.FC = () => {
         )}
       </div>
 
-      {/* New Conversation Modal */}
       {showNewConversation && (
         <NewConversationModal
           onClose={() => setShowNewConversation(false)}
