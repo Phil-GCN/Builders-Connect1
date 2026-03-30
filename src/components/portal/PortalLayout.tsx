@@ -106,6 +106,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({ children }) => {
     { id: 'permissions', label: 'Permissions', icon: Shield, path: '/portal/permissions', requiredLevel: 4 },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/portal/settings', requiredLevel: 4 },
     { id: 'messages', label: 'Messages', icon: MessageSquare, path: '/portal/messages', requiredLevel: 1 },
+    { id: 'invitations', label: 'Invitations', icon: UserPlus, path: '/portal/invitations', requiredLevel: 2 },
   ];
 
   const filteredMenuItems = menuItems.filter(item => {
