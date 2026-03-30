@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/public/Home';
 import About from './pages/public/About';
@@ -15,8 +15,18 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import OrderSuccess from './pages/public/OrderSuccess'; 
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
+import { emailProcessor } from './services/emailProcessor';
 
 function App() {
+  // Start email processor when app loads
+  useEffect(() => {
+    emailProcessor.start();
+    
+    return () => {
+      emailProcessor.stop();
+    };
+  }, []);
+
   return (
     <Router>
       <Routes>
