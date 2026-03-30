@@ -98,7 +98,7 @@ export const UserPermissionsEditor: React.FC<UserPermissionsEditorProps> = ({
 
   const handleGrantPermissions = async () => {
     if (selectedPermissions.length === 0) return;
-  
+
     setSubmitting(true);
     try {
       // Insert all selected permissions
@@ -110,13 +110,13 @@ export const UserPermissionsEditor: React.FC<UserPermissionsEditorProps> = ({
         reason: reason || null,
         expires_at: expiresAt || null,
       }));
-  
+
       const { error } = await supabase
         .from('user_permissions')
         .insert(permissionsToInsert);
-  
+
       if (error) throw error;
-  
+
       const count = selectedPermissions.length;
       alert(`✅ ${count} permission${count > 1 ? 's' : ''} granted successfully!`);
       setShowAddModal(false);
@@ -124,7 +124,7 @@ export const UserPermissionsEditor: React.FC<UserPermissionsEditorProps> = ({
       setReason('');
       setExpiresAt('');
       await loadData();
-  
+
     } catch (error: any) {
       console.error('Error granting permissions:', error);
       alert(`Failed: ${error.message}`);
@@ -192,7 +192,7 @@ export const UserPermissionsEditor: React.FC<UserPermissionsEditorProps> = ({
           <div className="mb-6">
             <Button onClick={() => {
               setShowAddModal(true);
-              setSelectedPermissions([]); // Reset selections
+              setSelectedPermissions([]);
             }}>
               <Plus className="w-5 h-5 mr-2" />
               Grant Custom Permission
@@ -275,7 +275,7 @@ export const UserPermissionsEditor: React.FC<UserPermissionsEditorProps> = ({
               <h3 className="text-xl font-bold text-gray-900 mb-4">
                 Grant Custom Permissions
               </h3>
-        
+
               {/* Multiple Permission Selection */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -328,7 +328,7 @@ export const UserPermissionsEditor: React.FC<UserPermissionsEditorProps> = ({
                   </p>
                 )}
               </div>
-        
+
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Reason (Optional)
@@ -341,7 +341,7 @@ export const UserPermissionsEditor: React.FC<UserPermissionsEditorProps> = ({
                   placeholder="Why are these permissions being granted?"
                 />
               </div>
-        
+
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Expires On (Optional)
@@ -353,7 +353,7 @@ export const UserPermissionsEditor: React.FC<UserPermissionsEditorProps> = ({
                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                 />
               </div>
-        
+
               <div className="flex gap-3">
                 <Button
                   onClick={() => {
