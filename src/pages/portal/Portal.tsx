@@ -13,10 +13,11 @@ import ContentManager from './ContentManager';
 import Community from './Community';
 import Analytics from './Analytics';
 import Settings from '../admin/Settings';
-import Notifications from './Notifications';
 import PermissionsManager from './PermissionsManager';
 import Messages from './Messages';
 import InvitationsManager from './InvitationsManager';
+
+// New Imports
 import Communications from './Communications';
 import Profile from './Profile';
 
@@ -43,13 +44,19 @@ const Portal: React.FC = () => {
         <Route path="community" element={<Community />} />
         <Route path="analytics" element={<Analytics />} />
         <Route path="settings" element={<Settings />} />
-        <Route path="*" element={<Dashboard />} />
-        <Route path="notifications" element={<Notifications />} />
-        <Route path="permissions" element={<PermissionsManager />} />
-        <Route path="messages" element={<Messages />} />
-        <Route path="invitations" element={<InvitationsManager />} />
+        
+        {/* Communications replaces Notifications */}
         <Route path="communications" element={<Communications />} />
+        
+        {/* Profile and Messages Routes */}
         <Route path="profile" element={<Profile />} />
+        <Route path="messages" element={<Messages />} />
+        
+        <Route path="permissions" element={<PermissionsManager />} />
+        <Route path="invitations" element={<InvitationsManager />} />
+        
+        {/* Catch-all Route - should be last */}
+        <Route path="*" element={<Dashboard />} />
       </Routes>
     </PortalLayout>
   );
