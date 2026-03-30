@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../Button';
-import { X, Search, Loader, CheckCircle } from 'lucide-react';
+import { X, Search, Loader, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 interface User {
@@ -24,27 +24,27 @@ export const NewConversationModal: React.FC<NewConversationModalProps> = ({
   const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [subject, setSubject] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [searchResults, setSearchResults] = useState<User[]>([]);
+
+  const userLevel = user?.role_level || 1;
+  const isMember = userLevel < 2;
 
   useEffect(() => {
-    loadUsers();
-  }, [user?.id]);
-
-  const loadUsers = async () => {
-    if (!user?.id) {
-      console.error('User ID not available');
-      setLoading(false);
-      return;
+    if (searchQuery.length >= 3) {
+      searchUsers();
+    } else {
+      setSearchResults([]);
     }
+  }, [searchQuery]);
+
+  const searchUsers = async () => {
+    if (!user?.id || searchQuery.length < 3) return;
 
     setLoading(true);
     try {
-      console.log('Loading users for messaging...');
-
-      // Get all users except current user with their roles
       const { data, error } = await supabase
         .from('users')
         .select(`
@@ -52,61 +52,35 @@ export const NewConversationModal: React.FC<NewConversationModalProps> = ({
           full_name,
           username,
           email,
-          role_id,
-          roles!inner(id, level)
+          role:roles!inner(level)
         `)
-        .neq('id', user.id);
+        .neq('id', user.id)
+        .or(`full_name.ilike.%${searchQuery}%,username.ilike.%${searchQuery}%`);
 
-      if (error) {
-        console.error('Error loading users:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('Raw user data:', data);
-
-      // Get current user's role level
-      const { data: currentUserData, error: currentUserError } = await supabase
-        .from('users')
-        .select(`
-          role_id,
-          roles!inner(level)
-        `)
-        .eq('id', user.id)
-        .single();
-
-      if (currentUserError) throw currentUserError;
-
-      const currentUserLevel = currentUserData?.roles?.level || 1;
-      console.log('Current user level:', currentUserLevel);
-
-      // Transform and filter users based on messaging permissions
-      const transformedUsers = (data || [])
+      // Filter based on messaging permissions
+      const filteredUsers = (data || [])
         .map(u => ({
           id: u.id,
           full_name: u.full_name,
           username: u.username,
           email: u.email,
-          role_level: u.roles?.level || 1
+          role_level: u.role?.level || 1
         }))
         .filter(u => {
-          // Members (level 1) can only message staff (level >= 3)
-          if (currentUserLevel < 2) {
+          // Members can only message staff (level >= 3)
+          if (isMember) {
             return u.role_level >= 3;
           }
-          // Moderators (level 2) can message moderators and above
-          if (currentUserLevel === 2) {
-            return u.role_level >= 2;
-          }
-          // Staff (level >= 3) can message anyone
+          // Staff can message anyone
           return true;
         });
 
-      console.log('Filtered users:', transformedUsers);
-      setUsers(transformedUsers);
+      setSearchResults(filteredUsers);
 
     } catch (error) {
-      console.error('Error loading users:', error);
-      alert('Failed to load users. Please try again.');
+      console.error('Error searching users:', error);
     } finally {
       setLoading(false);
     }
@@ -117,33 +91,25 @@ export const NewConversationModal: React.FC<NewConversationModalProps> = ({
 
     setCreating(true);
     try {
-      console.log('Creating conversation with user:', selectedUser);
-
-      // Check if conversation already exists between these two users
+      // Check if conversation already exists
       const { data: existingParticipants } = await supabase
         .from('conversation_participants')
         .select('conversation_id')
         .eq('user_id', user.id);
 
-      if (existingParticipants && existingParticipants.length > 0) {
+      if (existingParticipants) {
         for (const ep of existingParticipants) {
-          const { data: otherParticipants, error: otherError } = await supabase
+          const { data: otherParticipants } = await supabase
             .from('conversation_participants')
             .select('user_id')
             .eq('conversation_id', ep.conversation_id);
 
-          if (otherError) {
-            console.error('Error checking participants:', otherError);
-            continue;
-          }
-
-          // Check if this is a 2-person conversation with the selected user
           if (
             otherParticipants &&
             otherParticipants.length === 2 &&
             otherParticipants.some(p => p.user_id === selectedUser)
           ) {
-            console.log('Conversation already exists:', ep.conversation_id);
+            // Conversation exists
             onCreated(ep.conversation_id);
             onClose();
             return;
@@ -151,26 +117,19 @@ export const NewConversationModal: React.FC<NewConversationModalProps> = ({
         }
       }
 
-      console.log('Creating new conversation...');
-
-      // Create new conversation
+      // Create new conversation (no subject needed)
       const { data: conv, error: convError } = await supabase
         .from('conversations')
         .insert({
           type: 'direct',
-          subject: subject.trim() || null,
+          subject: null, // No subject for direct messages
           created_by: user.id,
           last_message_at: new Date().toISOString()
         })
         .select()
         .single();
 
-      if (convError) {
-        console.error('Error creating conversation:', convError);
-        throw convError;
-      }
-
-      console.log('Conversation created:', conv.id);
+      if (convError) throw convError;
 
       // Add participants
       const { error: participantsError } = await supabase
@@ -188,14 +147,9 @@ export const NewConversationModal: React.FC<NewConversationModalProps> = ({
           }
         ]);
 
-      if (participantsError) {
-        console.error('Error adding participants:', participantsError);
-        throw participantsError;
-      }
+      if (participantsError) throw participantsError;
 
-      console.log('Participants added successfully');
-
-      alert('✅ Conversation created successfully!');
+      alert('✅ Conversation started!');
       onCreated(conv.id);
       onClose();
 
@@ -207,17 +161,13 @@ export const NewConversationModal: React.FC<NewConversationModalProps> = ({
     }
   };
 
-  const filteredUsers = users.filter(u =>
-    (u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     u.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     u.email.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl max-w-md w-full max-h-[80vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between z-10">
-          <h2 className="text-2xl font-bold text-gray-900">New Conversation</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            {isMember ? 'Contact Support' : 'New Conversation'}
+          </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -227,24 +177,20 @@ export const NewConversationModal: React.FC<NewConversationModalProps> = ({
         </div>
 
         <div className="p-6">
-          {/* Subject */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Subject (Optional)
-            </label>
-            <input
-              type="text"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              placeholder="What's this conversation about?"
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-            />
-          </div>
+          {/* Info for members */}
+          {isMember && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 flex gap-2">
+              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-blue-800">
+                Search for a team member to start a support conversation. You can only contact our staff team.
+              </p>
+            </div>
+          )}
 
           {/* Search Users */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Recipient *
+              {isMember ? 'Search Staff Members' : 'Search Users'}
             </label>
             <div className="relative mb-3">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -252,31 +198,39 @@ export const NewConversationModal: React.FC<NewConversationModalProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search users..."
+                placeholder="Type at least 3 characters to search..."
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
               />
             </div>
+
+            {/* Search hint */}
+            {searchQuery.length > 0 && searchQuery.length < 3 && (
+              <p className="text-xs text-gray-500 mb-2">
+                Type {3 - searchQuery.length} more character{3 - searchQuery.length > 1 ? 's' : ''} to search
+              </p>
+            )}
 
             {/* User List */}
             <div className="border-2 border-gray-300 rounded-lg max-h-64 overflow-y-auto">
               {loading ? (
                 <div className="p-8 text-center">
-                  <Loader className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
-                  <p className="text-sm text-gray-600">Loading users...</p>
+                  <Loader className="w-8 h-8 animate-spin text-primary mx-auto" />
                 </div>
-              ) : filteredUsers.length === 0 ? (
+              ) : searchQuery.length < 3 ? (
                 <div className="p-8 text-center">
-                  <p className="text-gray-500 text-sm mb-1">
-                    {searchQuery ? 'No users found' : 'No users available'}
+                  <Search className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                  <p className="text-gray-500 text-sm">
+                    Start typing to search for {isMember ? 'staff members' : 'users'}
                   </p>
-                  {users.length === 0 && (
-                    <p className="text-xs text-gray-400">
-                      You can only message staff members
-                    </p>
-                  )}
+                </div>
+              ) : searchResults.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-gray-500 text-sm">
+                    No {isMember ? 'staff members' : 'users'} found
+                  </p>
                 </div>
               ) : (
-                filteredUsers.map(u => (
+                searchResults.map(u => (
                   <button
                     key={u.id}
                     onClick={() => setSelectedUser(u.id)}
