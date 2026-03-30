@@ -5,15 +5,18 @@ import { Users, Package, FileText, TrendingUp } from 'lucide-react';
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
 
-  // Get display name - prefer full_name, fallback to email first part
+  // Get display name - prefer full_name, then username, fallback to email first part
   const getDisplayName = () => {
     if (user?.full_name) {
       return user.full_name;
     }
+    if (user?.username) {
+      return user.username;
+    }
     // Extract name from email (everything before @)
     if (user?.email) {
       const emailName = user.email.split('@')[0];
-      // Capitalize first letter
+      // Capitalize first letter for a cleaner look
       return emailName.charAt(0).toUpperCase() + emailName.slice(1);
     }
     return 'there';
