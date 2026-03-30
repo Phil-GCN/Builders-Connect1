@@ -3,8 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/Button';
 import { 
   Bell, MessageSquare, Check, X, Loader, 
-  CheckCheck, Clock, UserPlus, Shield,
-  Send, Plus, Search
+  CheckCheck, Shield, Plus
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { NewConversationModal } from '../../components/portal/NewConversationModal';
@@ -377,7 +376,7 @@ const Communications: React.FC = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h4 className="font-semibold text-gray-900">
-                            {conv.subject || conv.participants.map(p => p.full_name || p.username).join(', ')}
+                            {conv.participants.map(p => p.full_name || p.username).join(', ') || 'Conversation'}
                           </h4>
                           {conv.unread_count > 0 && (
                             <span className="bg-red-500 text-white text-xs font-bold rounded-full px-2 py-0.5">{conv.unread_count}</span>
