@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../Button';
-import { X, Loader, UserPlus, AlertCircle } from 'lucide-react';
+import { X, Loader, UserPlus } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 interface Role {
@@ -73,7 +73,6 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
 
     setCreating(true);
     try {
-      // Generate unique code
       const code = Array.from({ length: 8 }, () => 
         'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]
       ).join('');
@@ -138,32 +137,27 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
             </p>
           </div>
 
-          {canAssignRoles ? (
+          {/* Only show role assignment for Managers+ */}
+          {canAssignRoles && roles.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Assign Role
+                Assign Role (Optional)
               </label>
               <select
                 value={roleId}
                 onChange={(e) => setRoleId(e.target.value)}
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
               >
+                <option value="">No specific role (default: Member)</option>
                 {roles.map(role => (
                   <option key={role.id} value={role.id}>
                     {role.display_name || role.name}
                   </option>
                 ))}
               </select>
-            </div>
-          ) : (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <div className="flex gap-2">
-                <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
-                <div className="text-sm text-yellow-800">
-                  <p className="font-medium mb-1">Role Assignment Restricted</p>
-                  <p>Only Managers and above can assign roles. New members will be assigned the default Member role.</p>
-                </div>
-              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                New members will be assigned this role upon accepting
+              </p>
             </div>
           )}
 
