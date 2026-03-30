@@ -15,6 +15,7 @@ import Analytics from './Analytics';
 import Settings from '../admin/Settings';
 import Notifications from './Notifications';
 import PermissionsManager from './PermissionsManager';
+import Messages from './Messages';
 
 const Portal: React.FC = () => {
   const { loading } = useAuth();
@@ -42,6 +43,7 @@ const Portal: React.FC = () => {
         <Route path="*" element={<Dashboard />} />
         <Route path="notifications" element={<Notifications />} />
         <Route path="permissions" element={<PermissionsManager />} />
+        <Route path="messages" element={<Messages />} />
       </Routes>
     </PortalLayout>
   );
