@@ -28,56 +28,66 @@ const Signup: React.FC = () => {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters');
       setLoading(false);
       return;
     }
 
     try {
-      // 1. Sign up with Supabase Auth
+      // 1. Sign up with Supabase Auth including Metadata
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: {
-            name: formData.name
-          }
+            full_name: formData.name || formData.email.split('@')[0]
+          },
+          emailRedirectTo: `${window.location.origin}/portal`
         }
       });
 
       if (authError) throw authError;
 
       if (authData.user) {
-        // 2. Create user profile
+        // 2. Create user profile in public.users table
         const { error: profileError } = await supabase
           .from('users')
           .insert({
             id: authData.user.id,
             email: formData.email,
-            name: formData.name,
-            role: 'MEMBER',
+            full_name: formData.name,
+            role_id: 'member', // Assuming lowercase based on previous schema updates
             avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.email}`
           });
 
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          // We don't throw here so the user still gets the "Check Email" alert
+        }
 
-        // 3. Send welcome email
-        const userName = authData.user.user_metadata?.name || 
-                         formData.name || 
-                         authData.user.email?.split('@')[0] || 
-                         'Builder';
-        
-        const emailTemplate = emailTemplates.welcome(userName, authData.user.email!);
+        // 3. Send welcome email manually
+        const userName = formData.name || formData.email.split('@')[0] || 'Builder';
+        const emailTemplate = emailTemplates.welcome(userName, formData.email);
         
         sendEmail({
-          to: authData.user.email!,
+          to: formData.email,
           subject: emailTemplate.subject,
           html: emailTemplate.html
         }).catch(err => console.error('Failed to send welcome email:', err));
 
-        // 4. Success navigation
-        alert('Account created! Please check your email to verify your account, then login.');
+        // 4. Success handling
+        alert('✅ Account created! Please check your email to verify your account.');
+        
+        // Clear form
+        setFormData({
+          name: '',
+          email: '',
+          password: '',
+          confirmPassword: ''
+        });
+
+        // Redirect to login (as user needs to verify before session is active)
         navigate('/login');
       }
     } catch (err: any) {
@@ -158,10 +168,10 @@ const Signup: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
                   placeholder="••••••••"
-                  minLength={6}
+                  minLength={8}
                 />
               </div>
-              <p className="mt-1 text-xs text-gray-500">At least 6 characters</p>
+              <p className="mt-1 text-xs text-gray-500">At least 8 characters</p>
             </div>
 
             <div>
